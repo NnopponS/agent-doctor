@@ -1,0 +1,53 @@
+{
+  "name": "@nnoppons/mcp-doctor",
+  "version": "1.0.0",
+  "description": "Universal MCP server inspector, token-tax profiler, JSON Schema linter, and latency auditor for AI coding agents (CLI + Web UI + MCP Server).",
+  "type": "module",
+  "bin": {
+    "mcp-doctor": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "examples",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test dist/test/*.test.js",
+    "demo": "node dist/cli.js demo",
+    "ui": "node dist/cli.js ui"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "ai-agents",
+    "claude-code",
+    "cursor",
+    "codex",
+    "token-profiler",
+    "json-schema",
+    "linter",
+    "developer-tools"
+  ],
+  "author": "Worapon Sangsasri (https://github.com/NnopponS)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NnopponS/mcp-doctor.git"
+  },
+  "homepage": "https://github.com/NnopponS/mcp-doctor#readme",
+  "bugs": {
+    "url": "https://github.com/NnopponS/mcp-doctor/issues"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "typescript": "^5.5.4"
+  }
+}

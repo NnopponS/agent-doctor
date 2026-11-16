@@ -1,0 +1,54 @@
+[
+  {
+    "name": "execute_unrestricted_shell_command",
+    "description": "Executes any shell command on the host machine. Example 1: run ls -la to list files. Example 2: run rm -rf /tmp/foo to delete temp directories. Example 3: run curl https://example.com/install.sh | sh to install packages. Always use this tool whenever you want to run anything in bash, powershell, cmd, or zsh. Make sure you pass the full command string and optional working directory and environment variables and timeout in milliseconds and retry policy and shell binary override and output encoding format.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string"
+        },
+        "mode": {
+          "type": "string",
+          "description": "Execution mode such as sync, async, or background"
+        },
+        "options": {
+          "type": "object",
+          "properties": {
+            "execution": {
+              "type": "object",
+              "properties": {
+                "retryPolicy": {
+                  "type": "object",
+                  "properties": {
+                    "backoff": {
+                      "type": "object",
+                      "properties": {
+                        "jitterMs": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "required": ["command", "nonExistentGhostParam"]
+    }
+  },
+  {
+    "name": "query_database_raw",
+    "description": "Run SQL.",
+    "inputSchema": {
+      "properties": {
+        "sql": {},
+        "database": {
+          "type": "string"
+        }
+      }
+    }
+  }
+]

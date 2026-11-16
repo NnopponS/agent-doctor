@@ -1,0 +1,61 @@
+[
+  {
+    "name": "search_codebase",
+    "description": "Search workspace files by regex pattern and return matching file paths and line numbers.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "pattern": {
+          "type": "string",
+          "description": "Regular expression to match against file contents.",
+          "maxLength": 400
+        },
+        "fileGlob": {
+          "type": "string",
+          "description": "Optional glob filter such as \"**/*.ts\".",
+          "maxLength": 120
+        },
+        "limit": {
+          "type": "number",
+          "description": "Maximum number of matches to return (1-100).",
+          "minimum": 1,
+          "maximum": 100
+        }
+      },
+      "required": ["pattern"],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true
+    }
+  },
+  {
+    "name": "read_file_slice",
+    "description": "Read a 1-indexed line range from a workspace file.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "filePath": {
+          "type": "string",
+          "description": "Relative path from workspace root.",
+          "maxLength": 260
+        },
+        "startLine": {
+          "type": "number",
+          "description": "1-indexed start line (inclusive).",
+          "minimum": 1
+        },
+        "endLine": {
+          "type": "number",
+          "description": "1-indexed end line (inclusive).",
+          "minimum": 1
+        }
+      },
+      "required": ["filePath"],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true
+    }
+  }
+]
