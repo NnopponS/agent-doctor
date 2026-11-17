@@ -5,6 +5,7 @@ import { inspectStdioServer } from './inspector.js';
 import {
   ConfigScanReport,
   ConfigSecretWarning,
+  DiagnosticFinding,
   McpServerTarget,
   ServerDiagnosisReport,
 } from './types.js';
@@ -45,6 +46,7 @@ export function parseMcpConfigFile(configPath: string): {
   servers: McpServerTarget[];
   secretWarnings: ConfigSecretWarning[];
   duplicateCommands: string[];
+  transportWarnings: DiagnosticFinding[];
 } {
   const rawContent = fs.readFileSync(configPath, 'utf8');
   const parsed = JSON.parse(rawContent) as Record<string, unknown>;
@@ -57,10 +59,45 @@ export function parseMcpConfigFile(configPath: string): {
   const secretWarnings: ConfigSecretWarning[] = [];
   const seenSignatures = new Map<string, string>();
   const duplicateCommands: string[] = [];
+  const transportWarnings: DiagnosticFinding[] = [];
 
   for (const [serverName, rawDef] of Object.entries(serversMap)) {
     if (!rawDef || typeof rawDef !== 'object') continue;
     const def = rawDef as Record<string, unknown>;
+
+    // Check remote HTTP / SSE transport definitions per 2026-07-28 MCP Specification
+    if (typeof def.url === 'string') {
+      const urlStr = def.url;
+      const isLegacySse =
+        def.transport === 'sse' || def.type === 'sse' || /\/sse(?:\?|$)/i.test(urlStr);
+      if (isLegacySse) {
+        transportWarnings.push({
+          ruleId: 'MCP020',
+          severity: 'warning',
+          category: 'protocol',
+          target: serverName,
+          message: `Remote MCP server "${serverName}" uses deprecated dual-endpoint HTTP+SSE transport ("${urlStr}").`,
+          suggestion:
+            'Migrate to the 2026-07-28 MCP Streamable HTTP transport (/mcp single endpoint with Mcp-Method/Mcp-Name gateway headers and OAuth 2.1 RFC 9728 Protected Resource Metadata).',
+        });
+      }
+      if (
+        urlStr.startsWith('http://') &&
+        !urlStr.includes('localhost') &&
+        !urlStr.includes('127.0.0.1')
+      ) {
+        transportWarnings.push({
+          ruleId: 'MCP020',
+          severity: 'error',
+          category: 'security',
+          target: serverName,
+          message: `Remote MCP server "${serverName}" uses unencrypted HTTP ("${urlStr}").`,
+          suggestion:
+            'Use HTTPS with OAuth 2.1 Resource Server discovery (/.well-known/oauth-protected-resource) and Client ID Metadata Documents (CIMD).',
+        });
+      }
+    }
+
     if (typeof def.command !== 'string') continue;
 
     const args = Array.isArray(def.args) ? def.args.map(String) : [];
@@ -100,17 +137,19 @@ export function parseMcpConfigFile(configPath: string): {
       args,
       env: Object.keys(envObj).length > 0 ? envObj : undefined,
       cwd: typeof def.cwd === 'string' ? def.cwd : undefined,
+      transport: 'stdio',
     });
   }
 
-  return { servers, secretWarnings, duplicateCommands };
+  return { servers, secretWarnings, duplicateCommands, transportWarnings };
 }
 
 export async function scanMcpConfig(
   configPath: string,
   options: { runLiveCheck?: boolean; timeoutMs?: number } = {},
 ): Promise<ConfigScanReport> {
-  const { servers, secretWarnings, duplicateCommands } = parseMcpConfigFile(configPath);
+  const { servers, secretWarnings, duplicateCommands, transportWarnings } =
+    parseMcpConfigFile(configPath);
   const serverReports: ServerDiagnosisReport[] = [];
 
   if (options.runLiveCheck) {
@@ -126,6 +165,7 @@ export async function scanMcpConfig(
     servers,
     secretWarnings,
     duplicateCommands,
+    transportWarnings,
     serverReports,
   };
 }

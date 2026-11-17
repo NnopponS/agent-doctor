@@ -35,6 +35,7 @@ export function scoreToGrade(score: number): HealthGrade {
 export function analyzeMcpServer(input: AnalyzeServerInput): ServerDiagnosisReport {
   const rawProfiles = input.tools.map((tool) => profileToolTokens(tool));
   const totalTokens = rawProfiles.reduce((acc, item) => acc + item.totalTokens, 0);
+  const claude5TotalTokens = rawProfiles.reduce((acc, item) => acc + item.claude5Tokens, 0);
 
   const profiles: ToolTokenProfile[] = rawProfiles
     .map((p) => ({
@@ -67,17 +68,17 @@ export function analyzeMcpServer(input: AnalyzeServerInput): ServerDiagnosisRepo
     }
   }
 
-  // Score calculation across 4 pillars: Schema (40), Tokens (30), Latency (15), Security (15)
+  // Score calculation across 4 pillars: Schema (40), Tokens & Cache (30), Protocol & Latency (15), Security (15)
   let schemaPenalty = 0;
   let tokenPenalty = 0;
   let latencyPenalty = 0;
   let securityPenalty = 0;
 
   for (const f of findings) {
-    const weight = f.severity === 'error' ? 12 : f.severity === 'warning' ? 5 : 1.5;
+    const weight = f.severity === 'error' ? 12 : f.severity === 'warning' ? 5 : 1.0;
     if (f.category === 'schema' || f.category === 'ergonomics') {
       schemaPenalty += weight;
-    } else if (f.category === 'tokens') {
+    } else if (f.category === 'tokens' || f.category === 'cache') {
       tokenPenalty += weight;
     } else if (f.category === 'protocol') {
       latencyPenalty += weight;
@@ -106,6 +107,7 @@ export function analyzeMcpServer(input: AnalyzeServerInput): ServerDiagnosisRepo
     promptCount: input.prompts?.length ?? 0,
     tools: profiles,
     totalTokens,
+    claude5TotalTokens,
     estimatedTokenSavingsIfOptimized,
     costEstimates: calculateCostEstimates(totalTokens),
     findings,
@@ -121,3 +123,4 @@ export function analyzeMcpServer(input: AnalyzeServerInput): ServerDiagnosisRepo
     timestamp: new Date().toISOString(),
   };
 }
+

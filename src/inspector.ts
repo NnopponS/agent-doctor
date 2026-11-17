@@ -184,9 +184,9 @@ export async function inspectStdioServer(
       try {
         const initStart = performance.now();
         const initRes = await sendRequest('initialize', {
-          protocolVersion: '2024-11-05',
+          protocolVersion: '2026-07-28',
           capabilities: {},
-          clientInfo: { name: 'mcp-doctor', version: '1.0.0' },
+          clientInfo: { name: 'agent-doctor', version: '2.0.0' },
         });
         const initializeMs = Number((performance.now() - initStart).toFixed(2));
 

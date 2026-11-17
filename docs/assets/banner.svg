@@ -10,28 +10,28 @@
     </linearGradient>
   </defs>
   <rect width="920" height="260" rx="14" fill="url(#bg)" stroke="#24324b" stroke-width="2"/>
-  <rect x="28" y="26" width="128" height="30" rx="6" fill="url(#accent)"/>
-  <text x="92" y="46" font-family="Consolas, monospace" font-size="14" font-weight="bold" fill="#082f49" text-anchor="middle">MCP-DOCTOR</text>
-  <text x="28" y="88" font-family="Inter, Segoe UI, sans-serif" font-size="26" font-weight="800" fill="#f8fafc">Stop Paying a Silent 15,000-Token Tax on Every Prompt</text>
-  <text x="28" y="116" font-family="Inter, Segoe UI, sans-serif" font-size="14" fill="#94a3b8">Live JSON-RPC 2.0 Stdio Handshake Profiler · Per-Tool BPE Token &amp; Cost Calculator · 17-Rule Schema &amp; Security Linter</text>
+  <rect x="28" y="26" width="164" height="30" rx="6" fill="url(#accent)"/>
+  <text x="110" y="46" font-family="Consolas, monospace" font-size="14" font-weight="bold" fill="#082f49" text-anchor="middle">AGENT-DOCTOR v2</text>
+  <text x="28" y="88" font-family="Inter, Segoe UI, sans-serif" font-size="25" font-weight="800" fill="#f8fafc">Audit Your 2026 Agent Stack Before It Burns Your Context Budget</text>
+  <text x="28" y="116" font-family="Inter, Segoe UI, sans-serif" font-size="13.5" fill="#94a3b8">AAIF 4-Layer Inspector (AGENTS.md · SKILL.md · MCP 2026-07-28 · A2A) · Prompt-Cache &amp; Schema Auto-Healer</text>
 
   <rect x="28" y="142" width="205" height="90" rx="8" fill="#172033" stroke="#24324b"/>
-  <text x="44" y="168" font-family="Consolas, monospace" font-size="12" fill="#94a3b8">HEALTH SCORE</text>
+  <text x="44" y="168" font-family="Consolas, monospace" font-size="12" fill="#94a3b8">AAIF STACK HEALTH</text>
   <text x="44" y="204" font-family="Consolas, monospace" font-size="28" font-weight="bold" fill="#22c55e">100/100 (A+)</text>
-  <text x="44" y="222" font-family="Consolas, monospace" font-size="11" fill="#64748b">4 pillars verified</text>
+  <text x="44" y="222" font-family="Consolas, monospace" font-size="11" fill="#64748b">AGENTS · SKILL · MCP · A2A</text>
 
   <rect x="247" y="142" width="205" height="90" rx="8" fill="#172033" stroke="#24324b"/>
-  <text x="263" y="168" font-family="Consolas, monospace" font-size="12" fill="#94a3b8">CONTEXT TAX / TURN</text>
-  <text x="263" y="204" font-family="Consolas, monospace" font-size="28" font-weight="bold" fill="#38bdf8">~316 tok</text>
-  <text x="263" y="222" font-family="Consolas, monospace" font-size="11" fill="#64748b">$0.95 / 1k turns (Sonnet 4)</text>
+  <text x="263" y="168" font-family="Consolas, monospace" font-size="12" fill="#94a3b8">2026 MODEL MATRIX</text>
+  <text x="263" y="198" font-family="Consolas, monospace" font-size="15" font-weight="bold" fill="#38bdf8">Claude 5.5 · GPT-6</text>
+  <text x="263" y="220" font-family="Consolas, monospace" font-size="11" fill="#64748b">Gemini 4 · DeepSeek V4</text>
 
   <rect x="466" y="142" width="205" height="90" rx="8" fill="#172033" stroke="#24324b"/>
-  <text x="482" y="168" font-family="Consolas, monospace" font-size="12" fill="#94a3b8">COLD-START LATENCY</text>
-  <text x="482" y="204" font-family="Consolas, monospace" font-size="28" font-weight="bold" fill="#e2e8f0">48.2 ms</text>
-  <text x="482" y="222" font-family="Consolas, monospace" font-size="11" fill="#64748b">spawn + init + tools/list</text>
+  <text x="482" y="168" font-family="Consolas, monospace" font-size="12" fill="#94a3b8">PROMPT CACHE GUARD</text>
+  <text x="482" y="198" font-family="Consolas, monospace" font-size="18" font-weight="bold" fill="#22c55e">95% Hit Rate</text>
+  <text x="482" y="220" font-family="Consolas, monospace" font-size="11" fill="#64748b">MCP018 + Key Sort + Fixer</text>
 
   <rect x="685" y="142" width="207" height="90" rx="8" fill="#172033" stroke="#24324b"/>
-  <text x="701" y="168" font-family="Consolas, monospace" font-size="12" fill="#94a3b8">SURFACES</text>
-  <text x="701" y="196" font-family="Consolas, monospace" font-size="15" font-weight="bold" fill="#f8fafc">CLI · Web UI · MCP</text>
+  <text x="701" y="168" font-family="Consolas, monospace" font-size="12" fill="#94a3b8">SKILL MIGRATION</text>
+  <text x="701" y="198" font-family="Consolas, monospace" font-size="18" font-weight="bold" fill="#f8fafc">-90% Context</text>
   <text x="701" y="220" font-family="Consolas, monospace" font-size="11" fill="#64748b">Zero runtime dependencies</text>
 </svg>

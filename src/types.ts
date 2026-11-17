@@ -27,11 +27,21 @@ export interface McpToolInputSchema {
   [key: string]: unknown;
 }
 
+export interface McpToolAnnotations {
+  title?: string;
+  readOnlyHint?: boolean;
+  destructiveHint?: boolean;
+  idempotentHint?: boolean;
+  openWorldHint?: boolean;
+  [key: string]: unknown;
+}
+
 export interface McpToolDefinition {
   name: string;
   description?: string;
   inputSchema?: McpToolInputSchema;
-  annotations?: Record<string, unknown>;
+  outputSchema?: McpToolInputSchema;
+  annotations?: McpToolAnnotations;
 }
 
 export interface McpResourceDefinition {
@@ -53,6 +63,8 @@ export interface McpServerTarget {
   args: string[];
   env?: Record<string, string>;
   cwd?: string;
+  transport?: 'stdio' | 'streamable-http' | 'legacy-sse';
+  url?: string;
 }
 
 export interface HandshakeTiming {
@@ -70,16 +82,29 @@ export interface ToolTokenProfile {
   descriptionTokens: number;
   schemaTokens: number;
   totalTokens: number;
+  claude5Tokens: number;
   shareOfServerPct: number;
   parameterCount: number;
   requiredCount: number;
   undocumentedParams: string[];
   untypedParams: string[];
   maxDepth: number;
+  hasOutputSchema: boolean;
+  hasSafetyAnnotations: boolean;
+  cacheBustingSignals: string[];
 }
 
 export type FindingSeverity = 'error' | 'warning' | 'info';
-export type FindingCategory = 'protocol' | 'schema' | 'tokens' | 'security' | 'ergonomics';
+export type FindingCategory =
+  | 'protocol'
+  | 'schema'
+  | 'tokens'
+  | 'security'
+  | 'ergonomics'
+  | 'cache'
+  | 'a2a'
+  | 'skills'
+  | 'agents-md';
 
 export interface DiagnosticFinding {
   ruleId: string;
@@ -93,10 +118,17 @@ export interface DiagnosticFinding {
 export interface ModelCostEstimate {
   modelId: string;
   label: string;
+  provider: string;
+  contextWindowTokens: number;
+  tokenizerMultiplier: number;
+  effectiveTokens: number;
   inputPricePer1MTokensUsd: number;
+  cachedInputPricePer1MTokensUsd: number;
   costPerTurnUsd: number;
   costPer100TurnsUsd: number;
   costPer1kTurnsUsd: number;
+  cachedCostPer1kTurnsUsd: number;
+  cacheBustPenaltyPer1kTurnsUsd: number;
 }
 
 export type HealthGrade = 'A+' | 'A' | 'B' | 'C' | 'D' | 'F';
@@ -112,6 +144,7 @@ export interface ServerDiagnosisReport {
   promptCount: number;
   tools: ToolTokenProfile[];
   totalTokens: number;
+  claude5TotalTokens: number;
   estimatedTokenSavingsIfOptimized: number;
   costEstimates: ModelCostEstimate[];
   findings: DiagnosticFinding[];
@@ -141,5 +174,56 @@ export interface ConfigScanReport {
   servers: McpServerTarget[];
   secretWarnings: ConfigSecretWarning[];
   duplicateCommands: string[];
+  transportWarnings: DiagnosticFinding[];
   serverReports: ServerDiagnosisReport[];
+}
+
+export interface A2ASkillDefinition {
+  id: string;
+  name: string;
+  description?: string;
+  tags?: string[];
+  examples?: string[];
+  inputModes?: string[];
+  outputModes?: string[];
+}
+
+export interface A2AAgentCard {
+  name?: string;
+  description?: string;
+  url?: string;
+  version?: string;
+  protocolVersion?: string;
+  capabilities?: {
+    streaming?: boolean;
+    pushNotifications?: boolean;
+    stateTransitionHistory?: boolean;
+  };
+  securitySchemes?: Record<string, unknown>;
+  defaultInputModes?: string[];
+  defaultOutputModes?: string[];
+  skills?: A2ASkillDefinition[];
+  [key: string]: unknown;
+}
+
+export interface StackLayerSummary {
+  layer: 'agents-md' | 'skills' | 'mcp' | 'a2a';
+  status: 'present' | 'missing' | 'warning' | 'healthy';
+  filesInspected: string[];
+  alwaysOnTokens: number;
+  onDemandTokens: number;
+  findings: DiagnosticFinding[];
+}
+
+export interface AgentStackAuditReport {
+  rootDir: string;
+  score: number;
+  grade: HealthGrade;
+  passed: boolean;
+  alwaysOnContextTokens: number;
+  onDemandSkillTokens: number;
+  layers: StackLayerSummary[];
+  findings: DiagnosticFinding[];
+  costEstimates: ModelCostEstimate[];
+  timestamp: string;
 }

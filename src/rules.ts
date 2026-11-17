@@ -345,4 +345,41 @@ export const DIAGNOSTIC_RULE_REGISTRY: readonly DiagnosticRuleDefinition[] = [
           ]
         : [],
   },
+  {
+    id: 'MCP018',
+    title: 'Tool definitions must be deterministic across turns to preserve prefix prompt caching',
+    severity: 'error',
+    category: 'cache',
+    evaluate: ({ profiles }) =>
+      profiles
+        .filter((p) => p.cacheBustingSignals.length > 0)
+        .map((p) => ({
+          ruleId: 'MCP018',
+          severity: 'error',
+          category: 'cache',
+          target: p.name,
+          message: `Tool "${p.name}" contains volatile prompt-cache busting pattern(s): ${p.cacheBustingSignals.join(', ')}.`,
+          suggestion:
+            'Remove dynamic timestamps, UUIDs, and runtime counters from tool descriptions/schemas so Claude 5.5, GPT-6, and Gemini 4 preserve 90-95% prefix cache hits.',
+        })),
+  },
+  {
+    id: 'MCP019',
+    title: 'MCP 2026 tools should declare behavioral safety annotations (readOnlyHint / destructiveHint)',
+    severity: 'info',
+    category: 'protocol',
+    evaluate: ({ profiles }) =>
+      profiles
+        .filter((p) => !p.hasSafetyAnnotations)
+        .map((p) => ({
+          ruleId: 'MCP019',
+          severity: 'info',
+          category: 'protocol',
+          target: p.name,
+          message: `Tool "${p.name}" omits MCP 2026 behavioral annotations (readOnlyHint, destructiveHint, idempotentHint, openWorldHint).`,
+          suggestion:
+            'Add annotations: { readOnlyHint: true } or { destructiveHint: true } so 2026 agent harnesses can auto-approve safe reads and gate destructive actions.',
+        })),
+  },
 ];
+

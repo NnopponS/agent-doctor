@@ -1,7 +1,10 @@
 import readline from 'node:readline';
 import { analyzeMcpServer } from './analyzer.js';
+import { generateHealthBadgeSvg } from './badge.js';
 import { scanMcpConfig } from './config-scanner.js';
+import { fixMcpTools } from './fixer.js';
 import { inspectStdioServer, parseCommandString } from './inspector.js';
+import { auditAgentStack } from './stack-auditor.js';
 import { calculateCostEstimates } from './tokenizer.js';
 import { McpToolDefinition } from './types.js';
 
@@ -16,13 +19,13 @@ const MCP_DOCTOR_TOOLS: McpToolDefinition[] = [
   {
     name: 'diagnose_mcp_server',
     description:
-      'Spawn an MCP stdio server command, run initialize + tools/list handshake, measure cold-start latency, and return a full health & token-tax report.',
+      'Spawn an MCP stdio server command, run 2026-07-28 initialize + tools/list handshake, measure cold-start latency, and return a full health & prompt-cache report.',
     inputSchema: {
       type: 'object',
       properties: {
         commandLine: {
           type: 'string',
-          description: 'Full stdio command to launch the MCP server (e.g., "node dist/index.js").',
+          description: 'Full stdio command to launch the MCP server (e.g., "node dist/cli.js mcp").',
           maxLength: 500,
         },
         serverName: {
@@ -40,12 +43,12 @@ const MCP_DOCTOR_TOOLS: McpToolDefinition[] = [
       required: ['commandLine'],
       additionalProperties: false,
     },
-    annotations: { readOnlyHint: true },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
   },
   {
     name: 'audit_tool_schemas',
     description:
-      'Statically audit an array of MCP tool definitions for JSON Schema bugs, missing types, per-turn token bloat, and security risks.',
+      'Statically audit an array of MCP tool definitions for JSON Schema bugs, prompt-cache busting patterns, MCP 2026 annotations, and per-turn token tax.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -56,24 +59,46 @@ const MCP_DOCTOR_TOOLS: McpToolDefinition[] = [
         },
         tools: {
           type: 'array',
-          description: 'Array of MCP tool objects ({ name, description, inputSchema }).',
+          description: 'Array of MCP tool objects ({ name, description, inputSchema, annotations }).',
         },
       },
       required: ['tools'],
       additionalProperties: false,
     },
-    annotations: { readOnlyHint: true },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
+  },
+  {
+    name: 'auto_fix_tool_schemas',
+    description:
+      'Automatically repair broken MCP tool schemas, canonicalize property keys for prompt-cache hits, synthesize MCP 2026 safety annotations, and compress bloated descriptions.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        serverName: {
+          type: 'string',
+          description: 'Name of the server whose tool schemas are being repaired.',
+          maxLength: 100,
+        },
+        tools: {
+          type: 'array',
+          description: 'Array of MCP tool objects ({ name, description, inputSchema }) to repair.',
+        },
+      },
+      required: ['tools'],
+      additionalProperties: false,
+    },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
   },
   {
     name: 'estimate_context_cost',
     description:
-      'Calculate per-turn, 100-turn, and 1,000-turn USD context costs for a given MCP token count across Claude, GPT, Gemini, and DeepSeek models.',
+      'Calculate prefix-cached vs uncached 1,000-turn USD context costs across 2026 frontier models (Claude Sonnet 5.5, Opus 5.5, Fable 5.2, GPT-6 Astra, GPT-6.1 Sol, GPT-5.3 Codex, Gemini 4 Argon, DeepSeek V4-Pro, Qwen 3.8 Max).',
     inputSchema: {
       type: 'object',
       properties: {
         totalTokens: {
           type: 'number',
-          description: 'Total tokens consumed by MCP tool definitions.',
+          description: 'Total base tokens consumed by tool definitions or AGENTS.md.',
           minimum: 0,
           maximum: 2000000,
         },
@@ -81,12 +106,12 @@ const MCP_DOCTOR_TOOLS: McpToolDefinition[] = [
       required: ['totalTokens'],
       additionalProperties: false,
     },
-    annotations: { readOnlyHint: true },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
   },
   {
     name: 'scan_mcp_config',
     description:
-      'Inspect an MCP configuration file (.mcp.json, claude_desktop_config.json, .cursor/mcp.json) for hardcoded API keys and duplicate server commands.',
+      'Inspect an MCP configuration file (.mcp.json, claude_desktop_config.json, .cursor/mcp.json) for hardcoded API keys, deprecated SSE transport, and duplicate commands.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -103,7 +128,47 @@ const MCP_DOCTOR_TOOLS: McpToolDefinition[] = [
       required: ['configPath'],
       additionalProperties: false,
     },
-    annotations: { readOnlyHint: true },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
+  },
+  {
+    name: 'audit_agent_stack',
+    description:
+      'Audit a workspace directory across the 4-layer 2026 AAIF Agent Stack: AGENTS.md, .agents/skills/*/SKILL.md, .mcp.json, and A2A agent-card.json.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        rootDir: {
+          type: 'string',
+          description: 'Workspace directory path to audit across all 4 AAIF layers.',
+          maxLength: 400,
+        },
+      },
+      required: ['rootDir'],
+      additionalProperties: false,
+    },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
+  },
+  {
+    name: 'generate_mcp_badge',
+    description:
+      'Generate a shields.io-style SVG health and token badge for an array of MCP tool definitions.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        serverName: {
+          type: 'string',
+          description: 'Server name for the badge report.',
+          maxLength: 100,
+        },
+        tools: {
+          type: 'array',
+          description: 'Array of MCP tool objects ({ name, description, inputSchema }).',
+        },
+      },
+      required: ['tools'],
+      additionalProperties: false,
+    },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
   },
 ];
 
@@ -138,11 +203,11 @@ export function startMcpDoctorStdioServer(): void {
 
     if (req.method === 'initialize') {
       sendReply(req.id, {
-        protocolVersion: '2024-11-05',
+        protocolVersion: '2026-07-28',
         capabilities: { tools: {} },
         serverInfo: {
-          name: 'mcp-doctor',
-          version: '1.0.0',
+          name: 'agent-doctor',
+          version: '2.0.0',
         },
       });
       return;
@@ -188,6 +253,16 @@ export function startMcpDoctorStdioServer(): void {
           return;
         }
 
+        if (toolName === 'auto_fix_tool_schemas') {
+          const serverName = String(args.serverName ?? 'schema-fix');
+          const tools = Array.isArray(args.tools) ? (args.tools as McpToolDefinition[]) : [];
+          const fixResult = fixMcpTools(tools, serverName);
+          sendReply(req.id, {
+            content: [{ type: 'text', text: JSON.stringify(fixResult, null, 2) }],
+          });
+          return;
+        }
+
         if (toolName === 'estimate_context_cost') {
           const totalTokens = Number(args.totalTokens ?? 0);
           const estimates = calculateCostEstimates(totalTokens);
@@ -203,6 +278,30 @@ export function startMcpDoctorStdioServer(): void {
           const scan = await scanMcpConfig(configPath, { runLiveCheck });
           sendReply(req.id, {
             content: [{ type: 'text', text: JSON.stringify(scan, null, 2) }],
+          });
+          return;
+        }
+
+        if (toolName === 'audit_agent_stack') {
+          const rootDir = String(args.rootDir ?? '.');
+          const stackReport = await auditAgentStack(rootDir);
+          sendReply(req.id, {
+            content: [{ type: 'text', text: JSON.stringify(stackReport, null, 2) }],
+          });
+          return;
+        }
+
+        if (toolName === 'generate_mcp_badge') {
+          const serverName = String(args.serverName ?? 'mcp-server');
+          const tools = Array.isArray(args.tools) ? (args.tools as McpToolDefinition[]) : [];
+          const report = analyzeMcpServer({
+            serverName,
+            mode: 'static-schema',
+            tools,
+          });
+          const svg = generateHealthBadgeSvg(report);
+          sendReply(req.id, {
+            content: [{ type: 'text', text: svg }],
           });
           return;
         }

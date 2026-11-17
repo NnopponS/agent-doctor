@@ -1,22 +1,18 @@
 # AGENTS.md
 
-## Architecture Overview
+`agent-doctor` is a zero-dependency TypeScript/Node.js CLI, MCP 2026 server, and AAIF 4-layer stack auditor.
 
-- `src/types.ts`: Core domain types (`McpToolDefinition`, `ToolTokenProfile`, `DiagnosticFinding`, `ServerDiagnosisReport`, `ConfigScanReport`).
-- `src/tokenizer.ts`: Deterministic BPE token estimator for JSON Schema + prose descriptions and per-1,000-turn model cost table.
-- `src/rules.ts`: Declarative rule registry (`DIAGNOSTIC_RULE_REGISTRY`, `MCP001`-`MCP016`).
-- `src/analyzer.ts`: Pure analysis engine that combines token profiles, rule evaluation, potential token savings, and 4-pillar health scoring (`Schema 40`, `Tokens 30`, `Latency 15`, `Security 15`).
-- `src/inspector.ts`: Live JSON-RPC 2.0 stdio client that spawns a target MCP server and measures handshake latency and stdout hygiene (`MCP017`).
-- `src/config-scanner.ts`: Parses `.mcp.json`, `.cursor/mcp.json`, and `claude_desktop_config.json` to flag hardcoded secrets and duplicate server commands.
-- `src/mcp-server.ts`: Exposes `mcp-doctor` itself as a stdio MCP server (`diagnose_mcp_server`, `audit_tool_schemas`, `estimate_context_cost`, `scan_mcp_config`).
-- `src/web-ui.ts`: Local zero-dependency HTTP dashboard (`mcp-doctor ui`).
+## Verification Commands
 
-## Verification
+- Build & Run Full Test Suite: `npm test`
+- Typecheck Only: `npm run typecheck`
+- Run AAIF 4-Layer Self-Audit: `node dist/cli.js stack . --ci`
+- Run Live MCP Stdio Self-Check: `node dist/cli.js check "node dist/cli.js mcp" --ci`
 
-Run before committing any change:
+## Architecture Boundaries
 
-```bash
-npm run typecheck
-npm test
-node dist/cli.js check "node dist/cli.js mcp" --ci
-```
+- Zero external runtime npm dependencies (`node:*` standard library only).
+- `src/tokenizer.ts`: Late-2026 frontier model matrix (Claude 5.5 / Fable 5.2, GPT-6 / Codex, Gemini 4 / 3.8, DeepSeek V4-Pro, Qwen 3.8 Max) + cache-busting detection.
+- `src/stack-auditor.ts`: Audits `AGENTS.md`, `.agents/skills/*/SKILL.md`, `.mcp.json`, and `/.well-known/agent-card.json` (A2A).
+- `src/fixer.ts`: Automatic schema healing, key canonicalization, prompt-cache stabilization, and MCP 2026 annotation synthesis.
+- Never write debug logs to `stdout` when running in `mcp` stdio mode; log diagnostics to `stderr`.

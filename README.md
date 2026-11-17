@@ -1,186 +1,144 @@
-<p align="center">
-  <img src="docs/assets/banner.svg" alt="mcp-doctor banner" width="100%" />
+<div align="center">
+
+<img src="./docs/assets/banner.svg" alt="Agent Doctor — 2026 AAIF Agent Stack Inspector, Prompt-Cache Profiler & Schema Auto-Healer" width="100%" />
+
+<p>
+  <a href="https://github.com/NnopponS/agent-doctor/actions/workflows/ci.yml"><img src="https://github.com/NnopponS/agent-doctor/actions/workflows/ci.yml/badge.svg" alt="CI Status" /></a>
+  <img src="./docs/assets/health-badge.svg" alt="Agent Doctor Self-Audit Score" />
+  <img src="https://img.shields.io/badge/Node.js-%3E%3D18.0-339933?style=flat-square&logo=node.js&logoColor=white" alt="Node.js >= 18" />
+  <img src="https://img.shields.io/badge/Dependencies-0%20runtime-0284c7?style=flat-square" alt="Zero Runtime Dependencies" />
+  <img src="https://img.shields.io/badge/AAIF_2026-AGENTS.md_%7C_SKILL.md_%7C_MCP_%7C_A2A-7c3aed?style=flat-square" alt="AAIF 2026" />
+  <a href="https://nnoppons.github.io/agent-doctor/"><img src="https://img.shields.io/badge/Live_Playground-GitHub_Pages-16a34a?style=flat-square" alt="Live Playground" /></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-f59e0b?style=flat-square" alt="MIT License" /></a>
 </p>
 
-<h1 align="center">mcp-doctor</h1>
+<h3>One-Command 2026 AAIF Agent Stack Auditor, Prompt-Cache Profiler &amp; Schema Auto-Healer</h3>
 
-<p align="center">
-  <strong>Universal MCP server inspector, per-turn token profiler, JSON Schema linter, and cold-start latency auditor for AI coding agents.</strong>
-</p>
+**[Interactive Web Playground](https://nnoppons.github.io/agent-doctor/)** · **[`llms.txt` (AI Agent Index)](./llms.txt)** · **[MCP Registry (`server.json`)](./server.json)** · **[A2A Agent Card](./.well-known/agent-card.json)**
 
-<p align="center">
-  <a href="https://github.com/NnopponS/mcp-doctor/actions"><img src="https://img.shields.io/github/actions/workflow/status/NnopponS/mcp-doctor/ci.yml?branch=main&label=CI" alt="CI Status" /></a>
-  <a href="https://github.com/NnopponS/mcp-doctor/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License" /></a>
-  <img src="https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg" alt="Node >= 18" />
-  <img src="https://img.shields.io/badge/runtime_dependencies-0-38bdf8.svg" alt="Zero Runtime Dependencies" />
-</p>
+</div>
 
 ---
 
-## Why `mcp-doctor` Exists
+## Why `agent-doctor` v2.0? (Late-2026 Agent Stack Reality)
 
-Every Model Context Protocol (MCP) server registered in Claude Code, Cursor, Codex, Windsurf, or Gemini CLI injects its full `tools/list` payload into the model's context window on every turn. Four silent failure modes degrade agent reliability and inflate API spend:
+In 2026, production AI coding stacks span **4 interoperable layers** under the Agentic AI Foundation (AAIF):
 
-1. **Hidden Context Tax.** A single unoptimized MCP server registering 30 tools with inline examples routinely consumes **8,000 to 25,000 input tokens per turn** before the user types a word. Over 1,000 turns on Claude Opus 4, a 15,000-token tool payload costs **\$225.00** in background context overhead alone.
-2. **Broken JSON Schemas.** Missing root `type: "object"`, untyped properties, ghost entries in `required[]`, or 6-level nested schemas cause models to emit malformed tool calls or hallucinate parameter formats.
-3. **Stdout Corruption & Cold-Start Stalls.** A stray `console.log()` on stdout breaks JSON-RPC 2.0 framing, and synchronous startup tasks delay IDE tool discovery.
-4. **Unconstrained High-Risk Tools & Leaked Config Secrets.** Shell/SQL/write tools without boundary constraints (`enum`, `pattern`, `maxLength`) and plaintext API keys stored in `.mcp.json` or `claude_desktop_config.json` expose local workstations.
+1. **`AGENTS.md` / `CLAUDE.md`** — Always-on repository instructions loaded on every turn.
+2. **`SKILL.md` (Agent Skills)** — Progressive-disclosure workflows (~100-token YAML frontmatter; full body loaded on demand).
+3. **MCP (`2026-07-28` Spec)** — Tool contracts with behavioral annotations (`readOnlyHint`, `destructiveHint`), `Streamable HTTP`, and `OAuth 2.1` (RFC 9728 + CIMD).
+4. **A2A (`/.well-known/agent-card.json`)** — Agent2Agent horizontal discovery cards.
 
-`mcp-doctor` measures all four in one command. It runs with **zero runtime dependencies** across CLI, a local Web Dashboard, CI pipelines, and its own MCP server mode.
+Small mistakes across these layers silently wreck performance and budgets:
+- **Prompt-Cache Busting (`MCP018`)**: A single volatile timestamp or UUID inside a tool description breaks prefix prompt caching across turns—turning `$0.10/1M` cache hits on **Claude Sonnet 5.5**, **GPT-6.1 Sol**, or **Gemini 4 Argon** into `$2.00–$10.00/1M` cache-miss bills.
+- **Claude 5.x Tokenizer Inflation**: Anthropic models from 4.7+ (**Claude Sonnet 5.5**, **Opus 5.5**, **Fable 5.2**) use the updated tokenizer generating **~30% more tokens** for identical schemas.
+- **Deprecated SSE & Missing Safety Annotations (`MCP019` / `MCP020`)**: Legacy dual-endpoint HTTP+SSE configs and tools without `readOnlyHint`/`destructiveHint` fail modern enterprise gateways.
 
----
-
-## Quick Start
-
-### Run from a checkout or install globally
-
-```bash
-git clone https://github.com/NnopponS/mcp-doctor.git
-cd mcp-doctor
-npm install
-npm run build
-
-# Run a side-by-side comparison of a bloated vs. optimized MCP server
-node dist/cli.js demo
-```
-
-Or install directly from GitHub:
-
-```bash
-npm install -g github:NnopponS/mcp-doctor
-mcp-doctor demo
-```
+`agent-doctor` catches, profiles, and **automatically heals** all of these in **one zero-dependency binary**.
 
 ---
 
-## Core Workflows
-
-### 1. Live Stdio Handshake & Latency Inspection (`check`)
-
-Spawns any MCP server over stdio, performs a real JSON-RPC 2.0 `initialize` + `notifications/initialized` + `tools/list` + `resources/list` + `prompts/list` handshake, records millisecond timing for each phase, checks stdout hygiene, and audits every returned tool:
+## 30-Second Quickstart
 
 ```bash
-mcp-doctor check "node dist/cli.js mcp"
-mcp-doctor check "npx -y @modelcontextprotocol/server-filesystem ." --ci
-mcp-doctor check "python -m my_mcp_server" --markdown > report.md
+# 1. Audit your entire repository's 4-layer AAIF stack (AGENTS.md + SKILL.md + MCP 2026 + A2A)
+npx -y github:NnopponS/agent-doctor stack . --ci
+
+# 2. Live-inspect any MCP 2026 stdio server (handshake latency + prompt-cache check + 20 rules)
+npx -y github:NnopponS/agent-doctor check "node dist/cli.js mcp" --ci
+
+# 3. Auto-fix broken schemas, canonicalize property keys, scrub timestamps & add MCP 2026 annotations
+npx -y github:NnopponS/agent-doctor fix examples/bloated-tools.json --out examples/fixed-tools.json
+
+# 4. Migrate bloated always-on MCP tools into progressive SKILL.md bundles (~90% token reduction)
+npx -y github:NnopponS/agent-doctor migrate-skills examples/bloated-tools.json --dir .agents/skills
+
+# 5. Validate an A2A Agent Card or launch the local Web Inspector Dashboard
+npx -y github:NnopponS/agent-doctor a2a .well-known/agent-card.json --ci
+npx -y github:NnopponS/agent-doctor ui
 ```
 
-Sample terminal output:
+---
 
-```text
-============================================================================
-MCP-DOCTOR REPORT | Server: mcp-doctor | Score: 100/100 (A+) | PASSED
-============================================================================
-Mode: live-stdio | Tools: 4 | Resources: 0 | Prompts: 0
-Protocol: 2024-11-05 | Implementation: mcp-doctor@1.0.0
-Handshake Latency: total=48.2ms (spawn=6.1ms, init=28.4ms, tools/list=13.7ms)
-----------------------------------------------------------------------------
-CONTEXT TOKEN FOOTPRINT: ~316 tokens/turn
-Pillar Scores: Schema 40/40 | Tokens 30/30 | Latency 15/15 | Security 15/15
+## 2026 Frontier Model Cost Matrix (Built-In)
 
-Top Tools by Per-Turn Token Tax:
-  diagnose_mcp_server                [######------------]   103 tok ( 32.6%) | params=3 depth=1
-  scan_mcp_config                    [#####-------------]    82 tok ( 25.9%) | params=2 depth=1
-  audit_tool_schemas                 [####--------------]    69 tok ( 21.8%) | params=2 depth=1
-  estimate_context_cost              [####--------------]    62 tok ( 19.6%) | params=1 depth=1
+`agent-doctor` calculates **Effective Tokens** (including Claude 5.x's `1.30x` tokenizer multiplier) and shows both **Prefix-Cached** and **Uncached (Cache-Bust Penalty)** 1,000-turn bills:
 
-Estimated Input Token Cost (Context Tax Only):
-  Claude Sonnet 4      $3.00/1M -> $0.0948 / 100 turns | $0.948 / 1,000 turns
-  Claude Opus 4        $15.00/1M -> $0.4740 / 100 turns | $4.740 / 1,000 turns
-  GPT-5                $2.50/1M -> $0.0790 / 100 turns | $0.790 / 1,000 turns
-  Gemini 2.5 Pro       $1.25/1M -> $0.0395 / 100 turns | $0.395 / 1,000 turns
-  DeepSeek V3          $0.27/1M -> $0.0085 / 100 turns | $0.085 / 1,000 turns
-----------------------------------------------------------------------------
-DIAGNOSTIC FINDINGS: 0 issues detected. Clean MCP contract.
-============================================================================
+| Provider | Model | Tokenizer Factor | Input Rate ($/1M) | Cache Hit ($/1M) |
+| :--- | :--- | :---: | :---: | :---: |
+| **Anthropic** | **Claude Sonnet 5.5** (`claude-sonnet-5-5`) | `1.30x` | `$2.00` | `$0.10` |
+| **Anthropic** | **Claude Opus 5.5** (`claude-opus-5-5`) | `1.30x` | `$4.00` | `$0.20` |
+| **Anthropic** | **Claude Fable 5.2** (`claude-fable-5-2`) | `1.30x` | `$8.00` | `$0.20` |
+| **OpenAI** | **GPT-6 Astra** | `1.00x` | `$10.00` | `$1.00` |
+| **OpenAI** | **GPT-6.1 Sol** | `1.00x` | `$2.00` | `$0.10` |
+| **OpenAI** | **GPT-5.3 Codex** (`gpt-5.3-codex`) | `1.00x` | `$1.75` | `$0.175` |
+| **Google** | **Gemini 4 Argon** | `1.00x` | `$2.00` | `$0.10` |
+| **Google** | **Gemini 3.8 Flash** | `1.00x` | `$0.75` | `$0.075` |
+| **DeepSeek** | **DeepSeek V4-Pro** | `1.05x` | `$0.66` | `$0.022` |
+| **Alibaba** | **Qwen 3.8 Max** | `1.05x` | `$2.00` | `$0.20` |
+
+---
+
+## Key Features & Commands
+
+| Command | Purpose |
+| :--- | :--- |
+| `agent-doctor stack [dir]` | Audits all 4 AAIF layers (`AGENTS.md`, `SKILL.md`, `.mcp.json` / `server.json`, `agent-card.json`) |
+| `agent-doctor check "<cmd>"` | Spawns an MCP stdio server with `2026-07-28` handshake, times `initialize` + `tools/list`, runs 20 rules |
+| `agent-doctor fix <tools.json>` | Fixes `MCP001`–`MCP019`, sorts property keys for deterministic cache prefixes, strips volatile timestamps |
+| `agent-doctor migrate-skills <tools.json>` | Converts bloated MCP tools into progressive-disclosure `.agents/skills/<slug>/SKILL.md` files |
+| `agent-doctor a2a <agent-card.json>` | Audits Agent2Agent cards for identity, TLS, `securitySchemes`, `streaming`, and `skills[]` |
+| `agent-doctor scan-config [mcp.json]` | Detects plaintext API keys (`sk-`, `ghp_`, `AIza`, `AKIA`), duplicate servers, and legacy SSE URLs (`MCP020`) |
+| `agent-doctor badge <target> --out <svg>` | Generates an embeddable SVG Health Score + Token Tax badge |
+| `agent-doctor init-skill` | Installs `agent-doctor` as a portable `SKILL.md` in `.agents/skills/agent-doctor/` |
+| `agent-doctor ui` | Launches the localhost Web Dashboard (`http://127.0.0.1:4310`) |
+| `agent-doctor mcp` | Runs `agent-doctor` itself as a 7-tool MCP 2026 server |
+
+---
+
+## Use in GitHub Actions (CI + SARIF Security Tab)
+
+```yaml
+- name: Audit AI Agent Stack & MCP Schemas
+  uses: NnopponS/agent-doctor@v2
+  with:
+    stack-dir: '.'
+    fail-on-issues: 'true'
 ```
 
-### 2. Static Schema & Token Audit (`analyze`)
-
-Audit a saved `tools/list` JSON file in CI without launching external binaries:
+Export OASIS **SARIF 2.1.0** for GitHub Code Scanning:
 
 ```bash
-mcp-doctor analyze examples/bloated-tools.json
-mcp-doctor analyze examples/optimized-tools.json --ci
+npx -y github:NnopponS/agent-doctor analyze tools.json --sarif > agent-doctor.sarif
 ```
 
-### 3. Workstation Config & Secret Scanner (`scan-config`)
+---
 
-Scan `.mcp.json`, `.cursor/mcp.json`, `.vscode/mcp.json`, or `claude_desktop_config.json` for hardcoded API keys (`sk-...`, `ghp_...`, `AIza...`, `xoxb-...`, `AKIA...`), duplicate server commands, and optional live server health:
+## Diagnostic Rule Matrix
 
-```bash
-mcp-doctor scan-config
-mcp-doctor scan-config ~/.cursor/mcp.json --live
-```
+- **Schema & Ergonomics (`MCP001`–`MCP007`, `MCP013`, `MCP015`)**: Root `type: "object"`, missing/verbose descriptions (`> 550` chars), untyped/undocumented parameters, ghost `required` fields, nesting depth `> 4`, portable naming, missing `enum`.
+- **Context Token & Prompt Caching (`MCP008`–`MCP011`, `MCP018`)**: Single tool `> 400` / `> 1,000` tok, server payload `> 4,000` / `> 10,000` tok, volatile timestamps/UUIDs that bust prefix prompt caching.
+- **MCP 2026 Protocol, Transport & Latency (`MCP000`, `MCP016`, `MCP017`, `MCP019`, `MCP020`)**: Non-JSON stdout pollution, cold-start `> 2,000 ms`, missing `readOnlyHint`/`destructiveHint` annotations, deprecated HTTP+SSE or unencrypted HTTP endpoints.
+- **AAIF Stack (`AGT001`–`AGT002`, `SKL001`–`SKL003`, `A2A001`–`A2A004`, `SEC001`)**: `AGENTS.md` `> 1,500` tok budget, `SKILL.md` frontmatter `> 120` tok budget, A2A Agent Card TLS & security schemes, and hardcoded credential detection.
 
-### 4. Interactive Local Web Dashboard (`ui`)
+---
 
-Launch the local dark-mode Web Inspector to test live server commands, paste tool schemas, inspect token distribution bars, and copy GitHub-flavored Markdown reports:
+## Self-Hosted MCP Server (`agent-doctor mcp`)
 
-```bash
-mcp-doctor ui --port 4310
-```
-
-### 5. Self-Hosted MCP Server Mode (`mcp`)
-
-Let your AI coding agent (Claude Code, Cursor, Codex, Antigravity) run `mcp-doctor` as an MCP tool server to diagnose and optimize other MCP servers automatically:
+Add `agent-doctor` directly to `.mcp.json`, Claude Code, Cursor, or Codex:
 
 ```json
 {
   "mcpServers": {
-    "mcp-doctor": {
+    "agent-doctor": {
       "command": "npx",
-      "args": ["-y", "github:NnopponS/mcp-doctor", "mcp"]
+      "args": ["-y", "github:NnopponS/agent-doctor", "mcp"]
     }
   }
 }
 ```
 
-Exposed MCP tools:
-- `diagnose_mcp_server` — Spawn a target stdio MCP server and return a full `ServerDiagnosisReport`.
-- `audit_tool_schemas` — Statically lint an array of MCP tool definitions and compute token weight.
-- `estimate_context_cost` — Calculate per-turn, 100-turn, and 1,000-turn USD costs across frontier models.
-- `scan_mcp_config` — Audit an MCP config file for plaintext secrets and duplicate commands.
-
----
-
-## Diagnostic Rule Catalog (`MCP000`–`MCP017`)
-
-All rules are defined declaratively in [`src/rules.ts`](src/rules.ts) and [`src/inspector.ts`](src/inspector.ts):
-
-| Rule ID | Category | Severity | What It Checks |
-| :--- | :--- | :---: | :--- |
-| `MCP000` | `protocol` | **ERROR** | Stdio process failed to spawn, timed out, or returned a JSON-RPC error on `initialize`. |
-| `MCP001` | `schema` | **ERROR** | Tool `inputSchema` is missing or `inputSchema.type !== "object"`. |
-| `MCP002` | `schema` | **WARN** | Tool `description` is missing or shorter than 15 characters. |
-| `MCP003` | `ergonomics` | **WARN** | Tool `description` exceeds 550 characters (inflates every prompt turn). |
-| `MCP004` | `schema` | **WARN** | Property in `inputSchema.properties` lacks an explicit `type`, `enum`, or composition keyword. |
-| `MCP005` | `ergonomics` | **INFO** | Property in `inputSchema.properties` lacks a `description`. |
-| `MCP006` | `schema` | **ERROR** | `inputSchema.required` references a ghost parameter missing from `properties`. |
-| `MCP007` | `schema` | **WARN** | Schema nesting depth exceeds 4 levels. |
-| `MCP008` | `tokens` | **WARN** | Single tool consumes `> 400` tokens in `tools/list`. |
-| `MCP009` | `tokens` | **ERROR** | Single tool consumes `> 1,000` tokens in `tools/list`. |
-| `MCP010` | `tokens` | **WARN** | Total server `tools/list` payload exceeds `4,000` tokens per turn. |
-| `MCP011` | `tokens` | **ERROR** | Total server `tools/list` payload exceeds `10,000` tokens per turn. |
-| `MCP012` | `ergonomics` | **WARN** | Server registers `> 25` tools in a single flat namespace. |
-| `MCP013` | `ergonomics` | **ERROR** | Tool name violates `^[a-zA-Z0-9_-]{1,64}$`. |
-| `MCP014` | `security` | **WARN** | High-risk shell/SQL/write tool lacks boundary constraints (`enum`, `pattern`, `maxLength`) or safety annotations. |
-| `MCP015` | `schema` | **INFO** | String parameter named `mode`, `status`, `format`, `action`, or `level` lacks an `enum` constraint. |
-| `MCP016` | `protocol` | **WARN** | Cold-start `initialize` + `tools/list` handshake exceeded `2,000 ms`. |
-| `MCP017` | `protocol` | **ERROR** | Server wrote non-JSON debug output to `stdout` during an active MCP session. |
-
----
-
-## Programmatic TypeScript API
-
-```typescript
-import { analyzeMcpServer, inspectStdioServer, parseCommandString } from '@nnoppons/mcp-doctor';
-
-const target = parseCommandString('node ./my-mcp-server.js', 'my-server');
-const report = await inspectStdioServer(target, { timeoutMs: 5000 });
-
-console.log(`Score: ${report.score}/100 (${report.grade}), Tokens/turn: ${report.totalTokens}`);
-```
+Exposes 7 read-only annotated tools: `diagnose_mcp_server`, `audit_tool_schemas`, `auto_fix_tool_schemas`, `estimate_context_cost`, `scan_mcp_config`, `audit_agent_stack`, and `generate_mcp_badge`.
 
 ---
 

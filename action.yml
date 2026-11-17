@@ -1,0 +1,54 @@
+name: 'Agent Doctor — 2026 AAIF Stack Linter, Prompt-Cache Profiler & Schema Healer'
+description: 'Audit AGENTS.md, SKILL.md, MCP 2026 servers, and A2A Agent Cards for prompt-cache busting, token bloat, JSON Schema bugs, and security risks.'
+author: 'Worapon Sangsasri (NnopponS)'
+branding:
+  icon: 'activity'
+  color: 'blue'
+inputs:
+  stack-dir:
+    description: 'Audit a workspace directory across all 4 AAIF layers (AGENTS.md, SKILL.md, MCP 2026, A2A)'
+    required: false
+  command:
+    description: 'Stdio command to launch and inspect a live MCP server (e.g., "node dist/index.js")'
+    required: false
+  schema-file:
+    description: 'Path to a static tools/list JSON schema file to audit'
+    required: false
+  sarif-output:
+    description: 'Optional file path to write OASIS SARIF 2.1.0 output'
+    required: false
+  fail-on-issues:
+    description: 'Fail the workflow step if errors are detected or score < 70'
+    required: false
+    default: 'true'
+runs:
+  using: 'composite'
+  steps:
+    - name: Build agent-doctor
+      shell: bash
+      run: |
+        cd "${{ github.action_path }}"
+        npm ci
+        npm run build
+    - name: Run Agent Doctor Audit
+      shell: bash
+      run: |
+        CI_FLAG=""
+        if [ "${{ inputs.fail-on-issues }}" = "true" ]; then
+          CI_FLAG="--ci"
+        fi
+        if [ -n "${{ inputs.stack-dir }}" ]; then
+          node "${{ github.action_path }}/dist/cli.js" stack "${{ inputs.stack-dir }}" $CI_FLAG
+        elif [ -n "${{ inputs.command }}" ]; then
+          node "${{ github.action_path }}/dist/cli.js" check "${{ inputs.command }}" $CI_FLAG
+          if [ -n "${{ inputs.sarif-output }}" ]; then
+            node "${{ github.action_path }}/dist/cli.js" check "${{ inputs.command }}" --sarif > "${{ inputs.sarif-output }}"
+          fi
+        elif [ -n "${{ inputs.schema-file }}" ]; then
+          node "${{ github.action_path }}/dist/cli.js" analyze "${{ inputs.schema-file }}" $CI_FLAG
+          if [ -n "${{ inputs.sarif-output }}" ]; then
+            node "${{ github.action_path }}/dist/cli.js" analyze "${{ inputs.schema-file }}" --sarif > "${{ inputs.sarif-output }}"
+          fi
+        else
+          node "${{ github.action_path }}/dist/cli.js" stack . $CI_FLAG
+        fi

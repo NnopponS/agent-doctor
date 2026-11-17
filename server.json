@@ -1,0 +1,27 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
+  "name": "io.github.NnopponS/agent-doctor",
+  "description": "2026 AAIF Agent Stack Inspector (AGENTS.md, SKILL.md, MCP 2026-07-28, A2A), Prompt-Cache & Token-Tax Profiler (Claude 5.5, GPT-6, Gemini 4, DeepSeek V4, Qwen 3.8), and JSON Schema Auto-Healer.",
+  "status": "active",
+  "repository": {
+    "url": "https://github.com/NnopponS/agent-doctor",
+    "source": "github"
+  },
+  "version_detail": {
+    "version": "2.0.0"
+  },
+  "packages": [
+    {
+      "registry_name": "npm",
+      "name": "@nnoppons/agent-doctor",
+      "version": "2.0.0",
+      "runtime": "node",
+      "package_arguments": [
+        {
+          "type": "positional",
+          "value": "mcp"
+        }
+      ]
+    }
+  ]
+}

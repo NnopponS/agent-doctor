@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="288" height="20" role="img" aria-label="Agent Doctor: 100/100 (A+) · 1280 tok/turn">
+  <title>Agent Doctor: 100/100 (A+) · 1280 tok/turn</title>
+  <linearGradient id="s" x2="0" y2="100%">
+    <stop offset="0" stop-color="#bbb" stop-opacity=".1"/>
+    <stop offset="1" stop-opacity=".1"/>
+  </linearGradient>
+  <clipPath id="r">
+    <rect width="288" height="20" rx="3" fill="#fff"/>
+  </clipPath>
+  <g clip-path="url(#r)">
+    <rect width="88" height="20" fill="#1e293b"/>
+    <rect x="88" width="200" height="20" fill="#16a34a"/>
+    <rect width="288" height="20" fill="url(#s)"/>
+  </g>
+  <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" text-rendering="geometricPrecision" font-size="11">
+    <text aria-hidden="true" x="44" y="15" fill="#010101" fill-opacity=".3">Agent Doctor</text>
+    <text x="44" y="14" fill="#fff">Agent Doctor</text>
+    <text aria-hidden="true" x="188" y="15" fill="#010101" fill-opacity=".3">100/100 (A+) · 1280 tok/turn</text>
+    <text x="188" y="14" fill="#fff" font-weight="bold">100/100 (A+) · 1280 tok/turn</text>
+  </g>
+</svg>

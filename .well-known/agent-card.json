@@ -1,0 +1,41 @@
+{
+  "name": "agent-doctor",
+  "description": "AAIF 4-layer agent stack auditor, MCP 2026-07-28 inspector, prompt-cache profiler, and automated schema healer.",
+  "url": "https://nnoppons.github.io/agent-doctor/",
+  "version": "2.0.0",
+  "protocolVersion": "0.3.0",
+  "capabilities": {
+    "streaming": false,
+    "pushNotifications": false,
+    "stateTransitionHistory": false
+  },
+  "securitySchemes": {
+    "oauth2": {
+      "type": "oauth2",
+      "description": "OAuth 2.1 Resource Server discovery via /.well-known/oauth-protected-resource (RFC 9728) and CIMD."
+    }
+  },
+  "defaultInputModes": ["application/json", "text/plain"],
+  "defaultOutputModes": ["application/json", "text/markdown", "image/svg+xml"],
+  "skills": [
+    {
+      "id": "audit-agent-stack",
+      "name": "Audit 2026 AAIF Agent Stack",
+      "description": "Audits AGENTS.md, SKILL.md, MCP 2026 configs/schemas, and A2A agent-card.json for context tax, cache busting, and security risks.",
+      "tags": ["mcp", "a2a", "agents-md", "skill-md", "prompt-caching", "security"],
+      "examples": [
+        "Run agent-doctor stack . --ci",
+        "Audit my MCP server schemas and calculate Claude Sonnet 5.5 prompt-cache savings"
+      ]
+    },
+    {
+      "id": "auto-fix-mcp-schemas",
+      "name": "Auto-Fix MCP Tool Schemas",
+      "description": "Repairs broken JSON Schemas, canonicalizes property order for prefix cache hits, removes volatile timestamps, and synthesizes MCP 2026 safety annotations.",
+      "tags": ["json-schema", "auto-fix", "mcp-2026", "prompt-cache"],
+      "examples": [
+        "Run agent-doctor fix examples/bloated-tools.json --out examples/fixed-tools.json"
+      ]
+    }
+  ]
+}

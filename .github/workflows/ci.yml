@@ -22,5 +22,7 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
-      - name: Self-audit mcp-doctor MCP server with --ci gate
+      - name: Self-audit agent-doctor MCP 2026 server with --ci gate
         run: node dist/cli.js check "node dist/cli.js mcp" --ci
+      - name: Self-audit 4-layer AAIF stack with --ci gate
+        run: node dist/cli.js stack . --ci

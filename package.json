@@ -1,9 +1,10 @@
 {
-  "name": "@nnoppons/mcp-doctor",
-  "version": "1.0.0",
-  "description": "Universal MCP server inspector, token-tax profiler, JSON Schema linter, and latency auditor for AI coding agents (CLI + Web UI + MCP Server).",
+  "name": "@nnoppons/agent-doctor",
+  "version": "2.0.0",
+  "description": "Universal 2026 AAIF Agent Stack Inspector (AGENTS.md, SKILL.md, MCP 2026, A2A), Prompt-Cache & Token-Tax Profiler (Claude 5.5, GPT-6, Gemini 4, DeepSeek V4, Qwen 3.8), and JSON Schema Auto-Healer.",
   "type": "module",
   "bin": {
+    "agent-doctor": "./dist/cli.js",
     "mcp-doctor": "./dist/cli.js"
   },
   "main": "./dist/index.js",
@@ -11,6 +12,11 @@
   "files": [
     "dist",
     "examples",
+    ".well-known",
+    "AGENTS.md",
+    "llms.txt",
+    "server.json",
+    "action.yml",
     "README.md",
     "LICENSE"
   ],
@@ -19,29 +25,38 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "npm run build && node --test dist/test/*.test.js",
     "demo": "node dist/cli.js demo",
+    "stack": "node dist/cli.js stack .",
     "ui": "node dist/cli.js ui"
   },
   "keywords": [
-    "mcp",
+    "agent-doctor",
+    "mcp-doctor",
     "model-context-protocol",
-    "ai-agents",
-    "claude-code",
-    "cursor",
-    "codex",
+    "mcp-2026",
+    "a2a",
+    "agent2agent",
+    "agents-md",
+    "skill-md",
+    "aaif",
+    "prompt-caching",
+    "claude-5",
+    "gpt-6",
+    "gemini-4",
+    "deepseek-v4",
     "token-profiler",
     "json-schema",
     "linter",
-    "developer-tools"
+    "sarif"
   ],
   "author": "Worapon Sangsasri (https://github.com/NnopponS)",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/NnopponS/mcp-doctor.git"
+    "url": "https://github.com/NnopponS/agent-doctor.git"
   },
-  "homepage": "https://github.com/NnopponS/mcp-doctor#readme",
+  "homepage": "https://nnoppons.github.io/agent-doctor/",
   "bugs": {
-    "url": "https://github.com/NnopponS/mcp-doctor/issues"
+    "url": "https://github.com/NnopponS/agent-doctor/issues"
   },
   "engines": {
     "node": ">=18.0.0"

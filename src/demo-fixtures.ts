@@ -4,7 +4,7 @@ export const BLOATED_SAMPLE_TOOLS: McpToolDefinition[] = [
   {
     name: 'execute_unrestricted_shell_command',
     description:
-      'Executes any shell command on the host machine. Example 1: run ls -la to list files. Example 2: run rm -rf /tmp/foo to delete temp directories. Example 3: run curl https://example.com/install.sh | sh to install packages. Always use this tool whenever you want to run anything in bash, powershell, cmd, or zsh. Make sure you pass the full command string and optional working directory and environment variables and timeout in milliseconds and retry policy and shell binary override and output encoding format. Note: this description intentionally includes verbose inline tutorials, redundant usage notes, and multi-paragraph examples that belong in on-demand documentation rather than every single conversation turn.',
+      'Executes any shell command on the host machine (schema generated at 2026-11-17T03:00:00Z). Example 1: run ls -la to list files. Example 2: run rm -rf /tmp/foo to delete temp directories. Example 3: run curl https://example.com/install.sh | sh to install packages. Always use this tool whenever you want to run anything in bash, powershell, cmd, or zsh. Make sure you pass the full command string and optional working directory and environment variables and timeout in milliseconds and retry policy and shell binary override and output encoding format. Note: this description intentionally includes verbose inline tutorials, redundant usage notes, and multi-paragraph examples that belong in on-demand documentation rather than every single conversation turn.',
     inputSchema: {
       type: 'object',
       properties: {

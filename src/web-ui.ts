@@ -1,9 +1,12 @@
 import http from 'node:http';
 import { analyzeMcpServer } from './analyzer.js';
+import { generateHealthBadgeSvg } from './badge.js';
 import { BLOATED_SAMPLE_TOOLS, OPTIMIZED_SAMPLE_TOOLS } from './demo-fixtures.js';
+import { fixMcpTools } from './fixer.js';
 import { inspectStdioServer, parseCommandString } from './inspector.js';
 import { MCP_DOCTOR_TOOLS } from './mcp-server.js';
 import { formatMarkdownReport } from './reporter.js';
+import { auditAgentStack } from './stack-auditor.js';
 import { McpToolDefinition } from './types.js';
 
 function renderDashboardHtml(): string {
@@ -12,7 +15,7 @@ function renderDashboardHtml(): string {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MCP Doctor — Universal MCP Inspector & Token Profiler</title>
+  <title>Agent Doctor v2.0 — 2026 AI Agent Stack Inspector, Prompt-Cache Profiler & Auto-Fixer</title>
   <style>
     :root {
       --bg: #0b0f17;
@@ -36,7 +39,7 @@ function renderDashboardHtml(): string {
       line-height: 1.5;
       padding: 24px;
     }
-    .container { max-width: 1240px; margin: 0 auto; }
+    .container { max-width: 1280px; margin: 0 auto; }
     header {
       display: flex;
       justify-content: space-between;
@@ -77,9 +80,14 @@ function renderDashboardHtml(): string {
       border-color: #38bdf8;
       color: #fff;
     }
+    button.success {
+      background: #15803d;
+      border-color: #22c55e;
+      color: #fff;
+    }
     .grid {
       display: grid;
-      grid-template-columns: 380px 1fr;
+      grid-template-columns: 400px 1fr;
       gap: 20px;
     }
     @media (max-width: 960px) { .grid { grid-template-columns: 1fr; } }
@@ -109,7 +117,8 @@ function renderDashboardHtml(): string {
       font-size: 12px;
       margin-bottom: 12px;
     }
-    textarea { min-height: 220px; resize: vertical; }
+    textarea { min-height: 240px; resize: vertical; }
+    .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .kpi-row {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -122,7 +131,7 @@ function renderDashboardHtml(): string {
       border-radius: 8px;
       padding: 14px;
     }
-    .kpi .val { font-size: 24px; font-weight: 800; font-family: var(--mono); }
+    .kpi .val { font-size: 22px; font-weight: 800; font-family: var(--mono); }
     .kpi .lbl { font-size: 12px; color: var(--muted); }
     .bar-row { margin-bottom: 10px; }
     .bar-head {
@@ -153,42 +162,58 @@ function renderDashboardHtml(): string {
     .sev-warning { color: var(--warn); font-weight: 700; font-family: var(--mono); }
     .sev-info { color: var(--accent); font-weight: 700; font-family: var(--mono); }
     code { font-family: var(--mono); font-size: 12px; color: #7dd3fc; }
+    .fix-banner {
+      background: rgba(34, 197, 94, 0.12);
+      border: 1px solid var(--good);
+      color: #bbf7d0;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-bottom: 16px;
+      display: none;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <header>
       <div class="brand">
-        <span class="badge-logo">MCP-DOCTOR</span>
+        <span class="badge-logo">AGENT-DOCTOR v2.0</span>
         <div>
-          <h1>Universal MCP Server Inspector & Context Token Profiler</h1>
-          <div class="subtitle">Audit JSON-RPC 2.0 handshakes, per-turn token tax, schema defects, and boundary security</div>
+          <h1>Universal 2026 AI Agent Stack Inspector, Prompt-Cache Profiler &amp; Auto-Fixer</h1>
+          <div class="subtitle">Audit MCP 2026-07-28, AGENTS.md, SKILL.md, A2A Agent Cards, and Claude 5.5 / GPT-6 / Gemini 4 / DeepSeek V4 costs</div>
         </div>
       </div>
       <div class="controls">
         <button onclick="loadPreset('bloated')">Load Bloated Preset</button>
         <button onclick="loadPreset('optimized')">Load Optimized Preset</button>
-        <button onclick="loadPreset('self')">Inspect mcp-doctor Tools</button>
+        <button onclick="loadPreset('self')">Inspect agent-doctor Tools</button>
+        <button class="success" onclick="runAutoFix()">Auto-Fix &amp; Optimize Schemas</button>
         <button class="primary" onclick="copyMarkdown()">Copy Markdown Report</button>
       </div>
     </header>
 
+    <div id="fixBanner" class="fix-banner"></div>
+
     <div class="grid">
       <div>
         <div class="card">
-          <h2>1. Live Stdio Server Check</h2>
-          <label>Command Line (spawns stdio child & runs initialize + tools/list)</label>
+          <h2>1. Live Stdio Server Check (MCP 2026-07-28)</h2>
+          <label>Command Line (spawns stdio child &amp; runs initialize + tools/list)</label>
           <input id="cmdInput" value="node dist/cli.js mcp" placeholder="e.g. npx -y @modelcontextprotocol/server-filesystem ." />
           <button class="primary" style="width:100%" onclick="runLiveCheck()">Run Live Handshake Check</button>
         </div>
 
         <div class="card">
-          <h2>2. Static Schema / tools/list JSON Audit</h2>
+          <h2>2. Static Schema Audit &amp; Auto-Fix</h2>
           <label>Server Name</label>
           <input id="srvName" value="sample-mcp-server" />
           <label>Tools JSON Array</label>
           <textarea id="schemaInput"></textarea>
-          <button style="width:100%" onclick="runSchemaAudit()">Analyze Tool Schemas</button>
+          <div class="btn-row">
+            <button onclick="runSchemaAudit()">Analyze Schemas</button>
+            <button class="success" onclick="runAutoFix()">Auto-Fix Schemas</button>
+          </div>
         </div>
       </div>
 
@@ -199,7 +224,7 @@ function renderDashboardHtml(): string {
             <div class="val" id="kpiScore">--</div>
           </div>
           <div class="kpi">
-            <div class="lbl">Context Tax / Turn</div>
+            <div class="lbl">Tokens / Turn (Claude 5.x)</div>
             <div class="val" id="kpiTokens">--</div>
           </div>
           <div class="kpi">
@@ -218,20 +243,20 @@ function renderDashboardHtml(): string {
         </div>
 
         <div class="card">
-          <h2>Estimated Context Cost (Per 100 & 1,000 Turns)</h2>
+          <h2>2026 Frontier Model Cost (Cached vs Uncached per 1,000 Turns)</h2>
           <table>
             <thead>
-              <tr><th>Model</th><th>Input Rate ($/1M)</th><th>100 Turns</th><th>1,000 Turns</th></tr>
+              <tr><th>Model</th><th>Rate ($/1M)</th><th>Cached / 1k</th><th>Uncached / 1k</th><th>Cache-Bust Penalty</th></tr>
             </thead>
             <tbody id="costTable"></tbody>
           </table>
         </div>
 
         <div class="card">
-          <h2>Diagnostic Findings & Recommended Fixes</h2>
+          <h2>Diagnostic Findings &amp; Recommended Fixes</h2>
           <table>
             <thead>
-              <tr><th>Rule</th><th>Severity</th><th>Target</th><th>Issue & Actionable Fix</th></tr>
+              <tr><th>Rule</th><th>Severity</th><th>Target</th><th>Issue &amp; Actionable Fix</th></tr>
             </thead>
             <tbody id="findingsTable"></tbody>
           </table>
@@ -244,6 +269,7 @@ function renderDashboardHtml(): string {
     let currentReport = null;
 
     async function loadPreset(kind) {
+      document.getElementById('fixBanner').style.display = 'none';
       const res = await fetch('/api/demo?preset=' + encodeURIComponent(kind));
       const data = await res.json();
       document.getElementById('srvName').value = data.report.serverName;
@@ -253,6 +279,7 @@ function renderDashboardHtml(): string {
 
     async function runSchemaAudit() {
       try {
+        document.getElementById('fixBanner').style.display = 'none';
         const serverName = document.getElementById('srvName').value || 'custom-server';
         const raw = JSON.parse(document.getElementById('schemaInput').value);
         const tools = Array.isArray(raw) ? raw : (raw.tools || []);
@@ -268,7 +295,29 @@ function renderDashboardHtml(): string {
       }
     }
 
+    async function runAutoFix() {
+      try {
+        const serverName = document.getElementById('srvName').value || 'custom-server';
+        const raw = JSON.parse(document.getElementById('schemaInput').value);
+        const tools = Array.isArray(raw) ? raw : (raw.tools || []);
+        const res = await fetch('/api/fix', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ serverName, tools })
+        });
+        const result = await res.json();
+        document.getElementById('schemaInput').value = JSON.stringify(result.fixedTools, null, 2);
+        const banner = document.getElementById('fixBanner');
+        banner.style.display = 'block';
+        banner.textContent = 'Applied ' + result.actions.length + ' automated fix(es)! Score improved from ' + result.beforeReport.score + '/100 (' + result.beforeReport.grade + ') to ' + result.afterReport.score + '/100 (' + result.afterReport.grade + ') and saved ~' + result.tokensSaved + ' tokens/turn.';
+        renderReport(result.afterReport);
+      } catch (err) {
+        alert('Auto-fix error: ' + err.message);
+      }
+    }
+
     async function runLiveCheck() {
+      document.getElementById('fixBanner').style.display = 'none';
       const commandLine = document.getElementById('cmdInput').value.trim();
       if (!commandLine) return;
       document.getElementById('kpiScore').textContent = '...';
@@ -298,7 +347,7 @@ function renderDashboardHtml(): string {
       const scoreEl = document.getElementById('kpiScore');
       scoreEl.textContent = r.score + '/100 (' + r.grade + ')';
       scoreEl.style.color = r.score >= 85 ? 'var(--good)' : r.score >= 65 ? 'var(--warn)' : 'var(--err)';
-      document.getElementById('kpiTokens').textContent = '~' + r.totalTokens.toLocaleString() + ' tok';
+      document.getElementById('kpiTokens').textContent = r.totalTokens.toLocaleString() + ' (' + (r.claude5TotalTokens || r.totalTokens).toLocaleString() + ')';
       document.getElementById('kpiLatency').textContent = r.timing ? r.timing.totalMs + ' ms' : 'static';
       document.getElementById('kpiFindings').textContent = r.findings.length;
 
@@ -306,7 +355,7 @@ function renderDashboardHtml(): string {
       barsEl.innerHTML = r.tools.map(t => \`
         <div class="bar-row">
           <div class="bar-head">
-            <span><code>\${t.name}</code> (params: \${t.parameterCount}, depth: \${t.maxDepth})</span>
+            <span><code>\${t.name}</code> (params: \${t.parameterCount}, depth: \${t.maxDepth}, annot: \${t.hasSafetyAnnotations ? 'yes' : 'no'})</span>
             <span>\${t.totalTokens} tok (\${t.shareOfServerPct}%)</span>
           </div>
           <div class="bar-track"><div class="bar-fill" style="width:\${Math.max(2, t.shareOfServerPct)}%"></div></div>
@@ -315,15 +364,16 @@ function renderDashboardHtml(): string {
 
       document.getElementById('costTable').innerHTML = r.costEstimates.map(c => \`
         <tr>
-          <td>\${c.label}</td>
+          <td><strong>\${c.label}</strong></td>
           <td>$\${c.inputPricePer1MTokensUsd.toFixed(2)}</td>
-          <td>$\${c.costPer100TurnsUsd.toFixed(4)}</td>
+          <td style="color:var(--good)">$\${(c.cachedCostPer1kTurnsUsd || 0).toFixed(3)}</td>
           <td><strong>$\${c.costPer1kTurnsUsd.toFixed(3)}</strong></td>
+          <td style="color:var(--warn)">+$\${(c.cacheBustPenaltyPer1kTurnsUsd || 0).toFixed(3)}</td>
         </tr>
       \`).join('');
 
       document.getElementById('findingsTable').innerHTML = r.findings.length === 0
-        ? '<tr><td colspan="4" style="color:var(--good)">0 issues detected. All MCP checks passed.</td></tr>'
+        ? '<tr><td colspan="4" style="color:var(--good)">0 issues detected. All 2026 MCP checks passed.</td></tr>'
         : r.findings.map(f => \`
           <tr>
             <td><code>\${f.ruleId}</code></td>
@@ -383,7 +433,7 @@ export function startWebDashboard(options: { host?: string; port?: number } = {}
           preset === 'optimized'
             ? 'optimized-server'
             : preset === 'self'
-              ? 'mcp-doctor'
+              ? 'agent-doctor'
               : 'bloated-enterprise-server';
         const report = analyzeMcpServer({
           serverName,
@@ -391,6 +441,17 @@ export function startWebDashboard(options: { host?: string; port?: number } = {}
           tools,
         });
         sendJson(200, { tools, report });
+        return;
+      }
+
+      if (req.method === 'GET' && urlObj.pathname === '/api/stack') {
+        try {
+          const rootDir = urlObj.searchParams.get('dir') ?? '.';
+          const report = await auditAgentStack(rootDir);
+          sendJson(200, report);
+        } catch (err) {
+          sendJson(400, { error: (err as Error).message });
+        }
         return;
       }
 
@@ -406,6 +467,41 @@ export function startWebDashboard(options: { host?: string; port?: number } = {}
             tools: Array.isArray(body.tools) ? body.tools : [],
           });
           sendJson(200, report);
+        } catch (err) {
+          sendJson(400, { error: (err as Error).message });
+        }
+        return;
+      }
+
+      if (req.method === 'POST' && urlObj.pathname === '/api/fix') {
+        try {
+          const body = JSON.parse(await readBody()) as {
+            serverName?: string;
+            tools?: McpToolDefinition[];
+          };
+          const result = fixMcpTools(
+            Array.isArray(body.tools) ? body.tools : [],
+            body.serverName ?? 'custom-server',
+          );
+          sendJson(200, result);
+        } catch (err) {
+          sendJson(400, { error: (err as Error).message });
+        }
+        return;
+      }
+
+      if (req.method === 'POST' && urlObj.pathname === '/api/badge') {
+        try {
+          const body = JSON.parse(await readBody()) as {
+            serverName?: string;
+            tools?: McpToolDefinition[];
+          };
+          const report = analyzeMcpServer({
+            serverName: body.serverName ?? 'custom-server',
+            mode: 'static-schema',
+            tools: Array.isArray(body.tools) ? body.tools : [],
+          });
+          sendJson(200, { svg: generateHealthBadgeSvg(report), report });
         } catch (err) {
           sendJson(400, { error: (err as Error).message });
         }

@@ -8,20 +8,115 @@ import {
 export interface ModelPricingSpec {
   modelId: string;
   label: string;
+  provider: string;
+  contextWindowTokens: number;
+  tokenizerMultiplier: number;
   inputPricePer1MTokensUsd: number;
+  cachedInputPricePer1MTokensUsd: number;
 }
 
+/**
+ * Late-2026 Frontier Agentic Model Pricing & Tokenizer Matrix (USD per 1M input tokens).
+ * Reflects official API pricing across Anthropic Claude 5.x, OpenAI GPT-6 / Codex,
+ * Google Gemini 4 / 3.8, DeepSeek V4, and Alibaba Qwen 3.8.
+ * Note: Anthropic models from 4.7+ (including 5.2 and 5.5) use the 5.x tokenizer (~1.30x token density).
+ */
 export const MODEL_PRICING_TABLE: readonly ModelPricingSpec[] = [
-  { modelId: 'claude-sonnet-4', label: 'Claude Sonnet 4', inputPricePer1MTokensUsd: 3.0 },
-  { modelId: 'claude-opus-4', label: 'Claude Opus 4', inputPricePer1MTokensUsd: 15.0 },
-  { modelId: 'gpt-5', label: 'GPT-5', inputPricePer1MTokensUsd: 2.5 },
-  { modelId: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro', inputPricePer1MTokensUsd: 1.25 },
-  { modelId: 'deepseek-v3', label: 'DeepSeek V3', inputPricePer1MTokensUsd: 0.27 },
+  {
+    modelId: 'claude-sonnet-5-5',
+    label: 'Claude Sonnet 5.5',
+    provider: 'Anthropic',
+    contextWindowTokens: 1_000_000,
+    tokenizerMultiplier: 1.3,
+    inputPricePer1MTokensUsd: 2.0,
+    cachedInputPricePer1MTokensUsd: 0.1,
+  },
+  {
+    modelId: 'claude-opus-5-5',
+    label: 'Claude Opus 5.5',
+    provider: 'Anthropic',
+    contextWindowTokens: 1_000_000,
+    tokenizerMultiplier: 1.3,
+    inputPricePer1MTokensUsd: 4.0,
+    cachedInputPricePer1MTokensUsd: 0.2,
+  },
+  {
+    modelId: 'claude-fable-5-2',
+    label: 'Claude Fable 5.2',
+    provider: 'Anthropic',
+    contextWindowTokens: 1_000_000,
+    tokenizerMultiplier: 1.3,
+    inputPricePer1MTokensUsd: 8.0,
+    cachedInputPricePer1MTokensUsd: 0.2,
+  },
+  {
+    modelId: 'gpt-6-astra',
+    label: 'GPT-6 Astra',
+    provider: 'OpenAI',
+    contextWindowTokens: 1_050_000,
+    tokenizerMultiplier: 1.0,
+    inputPricePer1MTokensUsd: 10.0,
+    cachedInputPricePer1MTokensUsd: 1.0,
+  },
+  {
+    modelId: 'gpt-6.1-sol',
+    label: 'GPT-6.1 Sol',
+    provider: 'OpenAI',
+    contextWindowTokens: 1_050_000,
+    tokenizerMultiplier: 1.0,
+    inputPricePer1MTokensUsd: 2.0,
+    cachedInputPricePer1MTokensUsd: 0.1,
+  },
+  {
+    modelId: 'gpt-5.3-codex',
+    label: 'GPT-5.3 Codex',
+    provider: 'OpenAI',
+    contextWindowTokens: 400_000,
+    tokenizerMultiplier: 1.0,
+    inputPricePer1MTokensUsd: 1.75,
+    cachedInputPricePer1MTokensUsd: 0.175,
+  },
+  {
+    modelId: 'gemini-4-argon',
+    label: 'Gemini 4 Argon',
+    provider: 'Google',
+    contextWindowTokens: 1_000_000,
+    tokenizerMultiplier: 1.0,
+    inputPricePer1MTokensUsd: 2.0,
+    cachedInputPricePer1MTokensUsd: 0.1,
+  },
+  {
+    modelId: 'gemini-3.8-flash',
+    label: 'Gemini 3.8 Flash',
+    provider: 'Google',
+    contextWindowTokens: 1_000_000,
+    tokenizerMultiplier: 1.0,
+    inputPricePer1MTokensUsd: 0.75,
+    cachedInputPricePer1MTokensUsd: 0.075,
+  },
+  {
+    modelId: 'deepseek-v4-pro',
+    label: 'DeepSeek V4-Pro',
+    provider: 'DeepSeek',
+    contextWindowTokens: 1_000_000,
+    tokenizerMultiplier: 1.05,
+    inputPricePer1MTokensUsd: 0.66,
+    cachedInputPricePer1MTokensUsd: 0.022,
+  },
+  {
+    modelId: 'qwen-3.8-max',
+    label: 'Qwen 3.8 Max',
+    provider: 'Alibaba',
+    contextWindowTokens: 1_000_000,
+    tokenizerMultiplier: 1.05,
+    inputPricePer1MTokensUsd: 2.0,
+    cachedInputPricePer1MTokensUsd: 0.2,
+  },
 ];
 
 /**
  * Deterministic BPE token estimator tuned for structured JSON tool schemas
- * and prose descriptions (cl100k_base / o200k_base / Claude tokenizer approximation).
+ * and prose descriptions (o200k_base baseline; multiplied by 1.30x for Claude 5.x).
  */
 export function estimateTextTokens(text: string): number {
   if (!text) return 0;
@@ -56,10 +151,6 @@ export function estimateTextTokens(text: string): number {
   return Math.max(1, tokenCount);
 }
 
-/**
- * Estimates the token footprint of a serialized JSON Schema or tool object,
- * accounting for LLM system-prompt framing overhead per tool.
- */
 export function estimateSchemaTokens(schema: unknown): number {
   if (!schema || typeof schema !== 'object') return 4;
   const serialized = JSON.stringify(schema);
@@ -92,12 +183,37 @@ export function computeSchemaMaxDepth(node: unknown, currentDepth = 0): number {
   return maxDepth;
 }
 
-export function profileToolTokens(tool: McpToolDefinition): Omit<ToolTokenProfile, 'shareOfServerPct'> {
+/**
+ * Detects patterns in tool descriptions or schemas that bust prefix prompt caching
+ * across turns on Claude 5.5, GPT-6, Gemini 4, and DeepSeek V4.
+ */
+export function detectCacheBustingSignals(tool: McpToolDefinition): string[] {
+  const signals: string[] = [];
+  const desc = tool.description ?? '';
+  const serialized = JSON.stringify(tool);
+
+  if (/\b202\d-\d{2}-\d{2}T\d{2}:\d{2}/.test(serialized)) {
+    signals.push('dynamic ISO-8601 timestamp in tool definition');
+  }
+  if (/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/i.test(desc)) {
+    signals.push('embedded session/UUID in description');
+  }
+  if (/\b(?:current time|server uptime|random seed|generated at|session_id)\s*:/i.test(desc)) {
+    signals.push('volatile runtime state in description');
+  }
+  return signals;
+}
+
+export function profileToolTokens(
+  tool: McpToolDefinition,
+): Omit<ToolTokenProfile, 'shareOfServerPct'> {
   const description = tool.description ?? '';
   const nameTokens = estimateTextTokens(tool.name) + 4;
   const descriptionTokens = estimateTextTokens(description);
   const schemaTokens = estimateSchemaTokens(tool.inputSchema);
-  const totalTokens = nameTokens + descriptionTokens + schemaTokens;
+  const outputSchemaTokens = tool.outputSchema ? estimateSchemaTokens(tool.outputSchema) : 0;
+  const totalTokens = nameTokens + descriptionTokens + schemaTokens + outputSchemaTokens;
+  const claude5Tokens = Math.ceil(totalTokens * 1.3);
 
   const properties: Record<string, JsonSchemaProperty> =
     tool.inputSchema?.properties && typeof tool.inputSchema.properties === 'object'
@@ -131,6 +247,17 @@ export function profileToolTokens(tool: McpToolDefinition): Omit<ToolTokenProfil
   }
 
   const maxDepth = computeSchemaMaxDepth(tool.inputSchema, 0);
+  const hasOutputSchema = Boolean(
+    tool.outputSchema && typeof tool.outputSchema === 'object' && tool.outputSchema.type === 'object',
+  );
+  const hasSafetyAnnotations = Boolean(
+    tool.annotations &&
+      (typeof tool.annotations.readOnlyHint === 'boolean' ||
+        typeof tool.annotations.destructiveHint === 'boolean' ||
+        typeof tool.annotations.idempotentHint === 'boolean' ||
+        typeof tool.annotations.openWorldHint === 'boolean'),
+  );
+  const cacheBustingSignals = detectCacheBustingSignals(tool);
 
   return {
     name: tool.name,
@@ -138,24 +265,42 @@ export function profileToolTokens(tool: McpToolDefinition): Omit<ToolTokenProfil
     descriptionTokens,
     schemaTokens,
     totalTokens,
+    claude5Tokens,
     parameterCount: paramEntries.length,
     requiredCount: requiredList.length,
     undocumentedParams,
     untypedParams,
     maxDepth,
+    hasOutputSchema,
+    hasSafetyAnnotations,
+    cacheBustingSignals,
   };
 }
 
 export function calculateCostEstimates(totalTokens: number): ModelCostEstimate[] {
   return MODEL_PRICING_TABLE.map((spec) => {
-    const costPerTurnUsd = (totalTokens / 1_000_000) * spec.inputPricePer1MTokensUsd;
+    const effectiveTokens = Math.ceil(totalTokens * spec.tokenizerMultiplier);
+    const costPerTurnUsd = (effectiveTokens / 1_000_000) * spec.inputPricePer1MTokensUsd;
+    const cachedCostPerTurnUsd =
+      (effectiveTokens / 1_000_000) * spec.cachedInputPricePer1MTokensUsd;
+    const costPer1kTurnsUsd = Number((costPerTurnUsd * 1000).toFixed(3));
+    const cachedCostPer1kTurnsUsd = Number((cachedCostPerTurnUsd * 1000).toFixed(3));
     return {
       modelId: spec.modelId,
       label: spec.label,
+      provider: spec.provider,
+      contextWindowTokens: spec.contextWindowTokens,
+      tokenizerMultiplier: spec.tokenizerMultiplier,
+      effectiveTokens,
       inputPricePer1MTokensUsd: spec.inputPricePer1MTokensUsd,
+      cachedInputPricePer1MTokensUsd: spec.cachedInputPricePer1MTokensUsd,
       costPerTurnUsd: Number(costPerTurnUsd.toFixed(6)),
       costPer100TurnsUsd: Number((costPerTurnUsd * 100).toFixed(4)),
-      costPer1kTurnsUsd: Number((costPerTurnUsd * 1000).toFixed(3)),
+      costPer1kTurnsUsd,
+      cachedCostPer1kTurnsUsd,
+      cacheBustPenaltyPer1kTurnsUsd: Number(
+        Math.max(0, costPer1kTurnsUsd - cachedCostPer1kTurnsUsd).toFixed(3),
+      ),
     };
   });
 }

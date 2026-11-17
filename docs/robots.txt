@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://nnoppons.github.io/agent-doctor/sitemap.xml
