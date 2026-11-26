@@ -1,19 +1,15 @@
-# agent-doctor (v2.0.0)
+# Agent Doctor
 
-> Universal 2026 AI Agent Stack Inspector, Prompt-Cache & Token-Tax Profiler, Automatic Schema Healer, and Security Linter for the Agentic AI Foundation (AAIF) 4-Layer Stack (`AGENTS.md`, `SKILL.md`, `MCP 2026-07-28`, and `A2A Agent2Agent`).
+> Offline MCP tool-schema audits, version comparisons, and repository diagnostics.
 
-- Repository: https://github.com/NnopponS/agent-doctor
-- Live Playground & Documentation: https://nnoppons.github.io/agent-doctor/
-- Author: Worapon Sangsasri (https://github.com/NnopponS)
-- License: MIT
-- Runtime: Node.js >= 18.0.0 (Zero external runtime dependencies)
+## Start here
 
-## Core Capabilities
+- [Browser workbench](https://nnoppons.github.io/agent-doctor/): open or paste a JSON tool export, compare a second version, and export Markdown or JSON. Input stays in the browser. The browser uses the TypeScript analyzer and reports heuristic context sizes, not exact token usage or compatibility.
+- [Native Rust commands](https://github.com/NnopponS/agent-doctor/tree/main/rust): audit or compare local tool catalogs. The optional CI gate tests selected breaking changes and exits 2 when it detects one. It does not run tools or prove compatibility for every JSON Schema.
+- [Node.js CLI and Actions](https://github.com/NnopponS/agent-doctor#quickstart-from-source): static schema and repository auditing, SARIF, and a legacy local stdio inspector. Only run trusted processes in live mode.
 
-- **4-Layer AAIF Stack Auditor (`agent-doctor stack .`)**: Audits Layer 1 (`AGENTS.md` / `CLAUDE.md` always-on budget), Layer 2 (`.agents/skills/*/SKILL.md` progressive-disclosure frontmatter budget), Layer 3 (`MCP 2026-07-28` Streamable HTTP, OAuth 2.1 Resource Server metadata, and tool schemas), and Layer 4 (`/.well-known/agent-card.json` A2A Protocol).
-- **2026 Frontier Model Token & Prompt-Cache Profiler**: Calculates effective tokens (including the Claude 5.x 1.30x tokenizer multiplier) and compares 1,000-turn **Prefix-Cached** vs **Cache-Miss** costs across **Claude Sonnet 5.5**, **Claude Opus 5.5**, **Claude Fable 5.2**, **GPT-6 Astra**, **GPT-6.1 Sol**, **GPT-5.3 Codex**, **Gemini 4 Argon**, **Gemini 3.8 Flash**, **DeepSeek V4-Pro**, and **Qwen 3.8 Max**.
-- **Prompt-Cache Busting Detector (`MCP018`)**: Detects volatile ISO timestamps, UUIDs, and runtime counters inside tool schemas that invalidate 90-97.5% prefix cache discounts across turns.
-- **Automatic Schema Healer & Optimizer (`agent-doctor fix <tools.json> --out <fixed.json>`)**: Repairs missing `type: "object"`, removes ghost `required` fields, canonicalizes JSON property keys for deterministic prefix caching, synthesizes MCP 2026 `annotations` (`readOnlyHint`, `destructiveHint`, `idempotentHint`), and compresses bloated descriptions.
-- **MCP-to-Skill Progressive Disclosure Migrator (`agent-doctor migrate-skills <tools.json>`)**: Converts bulky always-on MCP tool definitions into on-demand AAIF `.agents/skills/<slug>/SKILL.md` bundles (~85-92% context reduction).
-- **A2A Agent Card Validator (`agent-doctor a2a <agent-card.json>`)**: Validates Agent2Agent protocol cards (`name`, `version`, `url`, `capabilities.streaming`, `securitySchemes`, `skills[]`).
-- **Self-Hosted MCP 2026 Server (`agent-doctor mcp`)**: Exposes 7 MCP tools (`diagnose_mcp_server`, `audit_tool_schemas`, `auto_fix_tool_schemas`, `estimate_context_cost`, `scan_mcp_config`, `audit_agent_stack`, `generate_mcp_badge`).
+## Source
+
+- [Repository](https://github.com/NnopponS/agent-doctor)
+- [Compatibility gate sample](https://github.com/NnopponS/agent-doctor/tree/main/rust/examples)
+- [License (MIT)](https://github.com/NnopponS/agent-doctor/blob/main/LICENSE)

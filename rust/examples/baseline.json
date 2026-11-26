@@ -1,0 +1,16 @@
+{
+  "tools": [
+    {
+      "name": "search_docs",
+      "description": "Find matching documents in the selected collection.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {"type": "string"},
+          "collection": {"type": "string", "enum": ["handbook", "api"]}
+        },
+        "required": ["query"]
+      }
+    }
+  ]
+}

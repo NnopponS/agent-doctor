@@ -360,7 +360,7 @@ export const DIAGNOSTIC_RULE_REGISTRY: readonly DiagnosticRuleDefinition[] = [
           target: p.name,
           message: `Tool "${p.name}" contains volatile prompt-cache busting pattern(s): ${p.cacheBustingSignals.join(', ')}.`,
           suggestion:
-            'Remove dynamic timestamps, UUIDs, and runtime counters from tool descriptions/schemas so Claude 5.5, GPT-6, and Gemini 4 preserve 90-95% prefix cache hits.',
+            'Keep timestamps, UUIDs, and runtime counters out of stable tool definitions. Cache behavior varies by provider.',
         })),
   },
   {
@@ -378,7 +378,7 @@ export const DIAGNOSTIC_RULE_REGISTRY: readonly DiagnosticRuleDefinition[] = [
           target: p.name,
           message: `Tool "${p.name}" omits MCP 2026 behavioral annotations (readOnlyHint, destructiveHint, idempotentHint, openWorldHint).`,
           suggestion:
-            'Add annotations: { readOnlyHint: true } or { destructiveHint: true } so 2026 agent harnesses can auto-approve safe reads and gate destructive actions.',
+            'Add annotations: { readOnlyHint: true } or { destructiveHint: true } to describe the intended behavior. Clients should not treat annotations as proof of safety.',
         })),
   },
 ];

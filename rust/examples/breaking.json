@@ -1,0 +1,16 @@
+{
+  "tools": [
+    {
+      "name": "search_docs",
+      "description": "Find matching documents in the handbook.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {"type": "string"},
+          "collection": {"type": "string", "enum": ["handbook"]}
+        },
+        "required": ["query", "collection"]
+      }
+    }
+  ]
+}

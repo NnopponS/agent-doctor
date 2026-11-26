@@ -1,48 +1,148 @@
 <!doctype html>
-<html lang="en"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Agent Doctor · MCP schema workbench</title>
-<meta name="description" content="Inspect an MCP tools/list response, compare schema versions, and export a diagnostic report. Runs in your browser with no uploads.">
-<meta property="og:title" content="Agent Doctor · MCP schema workbench"><meta property="og:description" content="Find MCP schema issues and compare tool context before and after a change.">
-<link rel="canonical" href="https://nnoppons.github.io/agent-doctor/"><link rel="stylesheet" href="./workbench.css">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'none'; img-src 'self' data:; base-uri 'none'; form-action 'none'; object-src 'none'">
-</head><body><main>
-<nav aria-label="Main"><a href="./" class="brand"><span>✚</span> agent<span class="muted">/</span>doctor</a><div><a href="#workbench">Workbench</a><a href="https://github.com/NnopponS/agent-doctor">GitHub ↗</a></div></nav>
-<header class="hero">
-<div><span class="eyebrow"><i></i> LOCAL SCHEMA WORKBENCH</span>
-<h1>Give your tools<br>a <em>checkup.</em></h1>
-<p>Find schema mistakes, see what takes up context, and compare versions before you ship.</p>
-<a class="button primary" href="#workbench">Open workbench <span aria-hidden="true">↓</span></a></div>
-<svg class="scope" viewBox="0 0 340 230" role="img" aria-label="Instrument-inspired illustration of a diagnostic pulse" xmlns="http://www.w3.org/2000/svg">
-<defs><pattern id="scope-grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" stroke="#83b0a2" stroke-opacity=".16" fill="none"/></pattern></defs>
-<rect x="1" y="1" width="338" height="228" rx="19" fill="#17332d" stroke="#426758" stroke-width="2"/>
-<rect x="18" y="24" width="304" height="179" rx="9" fill="#102921" stroke="#427d68"/><rect x="18" y="24" width="304" height="179" rx="9" fill="url(#scope-grid)"/>
-<text x="34" y="51" fill="#afd7c7" font-family="monospace" font-size="12" letter-spacing="2">SCHEMA DIAGNOSTICS</text>
-<path d="M34 123h48l19-32 27 64 29-91 33 62 15-24 15 21h86" fill="none" stroke="#8ff9bf" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-<circle cx="306" cy="123" r="5" fill="#cdef80"/><text x="35" y="178" fill="#a0c5b5" font-family="monospace" font-size="11">LOCAL INPUT  ·  STATIC ANALYSIS</text>
-</svg>
-</header>
-<section id="workbench">
-<div class="section-title"><div><p class="eyebrow">01 / WORKBENCH</p><h2>Inspect. Compare. Decide.</h2></div><span class="badge">No uploads</span></div>
-<div class="workgrid">
-<div class="panel editor">
-<div class="panel-head"><div><h3>Tool input</h3><p>Paste a tool array or a tools/list response.</p></div></div>
-<div class="toolbar"><button id="sample" type="button">Load example</button><button id="compare-example" type="button">Compare samples</button><label class="button file">Open JSON<input id="open" type="file" accept=".json,application/json"></label></div>
-<label class="sr-only" for="input">MCP tools JSON</label><textarea id="input" spellcheck="false" placeholder='{"tools":[…]}' maxlength="1000001"></textarea>
-<details id="candidate"><summary>Compare a second schema</summary><label for="second">Candidate JSON</label><textarea id="second" spellcheck="false" maxlength="1000001" placeholder="Paste the revised version"></textarea></details>
-<div class="toolbar bottom"><button id="audit" class="primary" type="button">Run audit →</button><button id="reset" type="button">Clear</button></div>
-<p id="notice" role="status">Loading analyzer…</p><noscript><p>Enable JavaScript to use the static browser analyzer.</p></noscript>
-</div>
-<div class="panel results" aria-labelledby="result-title">
-<div class="panel-head"><div><h3 id="result-title">Audit report</h3><p id="mode">Static tool-schema analysis</p></div><button id="download" type="button" disabled>Export JSON ↓</button></div>
-<div class="kpis"><div><span>Health heuristic</span><output id="score">–</output></div><div><span>Est. schema tokens</span><output id="tokens">–</output></div><div><span>Findings</span><output id="issues">–</output></div></div>
-<div id="comparison" hidden></div>
-<div class="sizing"><div class="subhead"><h4>Context by tool</h4><span id="tool-count"></span></div><ul id="bars"></ul></div>
-<div class="subhead"><h4>Findings</h4><label>Show <select id="severity"><option value="all">All findings</option><option value="error">Errors</option><option value="warning">Warnings</option><option value="info">Info</option></select></label></div>
-<div id="findings"></div>
-</div></div>
-</section>
-<section id="guide" class="guide"><div><p class="eyebrow">02 / LOCAL CLI</p><h2>When static analysis isn’t enough.</h2><p>The browser never connects to an MCP server. Use the CLI to audit a repository or explicitly check your own trusted local server.</p></div>
-<div class="commands"><a href="https://github.com/NnopponS/agent-doctor#quickstart-from-source">Install from source ↗</a><code>node dist/cli.js analyze tools.json --json</code><code>node dist/cli.js stack . --ci</code></div></section>
-<footer><span>Agent Doctor · MIT</span><div><a href="./llms.txt">Agent index</a><a href="https://github.com/NnopponS/agent-doctor">Source &amp; issues ↗</a></div></footer>
-</main><script type="module" src="./workbench.js"></script></body></html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agent Doctor · MCP schema workbench</title>
+  <meta name="description" content="Audit MCP tool schemas, compare versions, and export a report. Runs in your browser, with no uploads.">
+  <meta property="og:title" content="Agent Doctor · MCP schema workbench">
+  <meta property="og:description" content="Find schema issues and see what changed before you ship.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'none'; img-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+  <link rel="canonical" href="https://nnoppons.github.io/agent-doctor/">
+  <link rel="icon" href="./assets/mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./workbench.css">
+</head>
+<body>
+  <a class="skip-link" href="#workbench">Skip to workbench</a>
+  <div class="shell">
+    <nav aria-label="Main">
+      <a href="./" class="brand"><img src="./assets/mark.svg" width="29" height="29" alt="">agent<span>/</span>doctor</a>
+      <div class="nav-links">
+        <a href="#cli">CLI guide</a>
+        <a href="https://github.com/NnopponS/agent-doctor">GitHub <span aria-hidden="true">↗&#xfe0e;</span></a>
+      </div>
+    </nav>
+
+    <main id="workbench" tabindex="-1">
+      <header class="intro">
+        <div>
+          <p class="eyebrow"><span class="eyebrow-dash"></span> MCP SCHEMA WORKBENCH</p>
+          <h1>Audit MCP tool schemas.</h1>
+          <p>Find schema issues, estimate context size, and compare changes before you ship.</p>
+        </div>
+        <aside class="privacy" aria-label="Privacy">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="4.5" y="10" width="15" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 4v3"/></svg>
+          <div><strong>Runs in your browser</strong><p>No uploads or server connections.</p></div>
+        </aside>
+      </header>
+
+      <div class="workgrid">
+        <section class="panel editor" aria-labelledby="input-title">
+          <header class="panel-head">
+            <p class="eyebrow"><span class="step">01</span> INPUT</p>
+            <h2 id="input-title" tabindex="-1">Tool schemas</h2>
+            <p id="input-help">Paste a tool array, <code>tools/list</code> result, or JSON-RPC response.</p>
+          </header>
+
+          <fieldset class="mode-picker">
+            <legend class="sr-only">Analysis mode</legend>
+            <label><input class="sr-only" type="radio" name="analysis-mode" value="audit" id="audit-mode" checked><span>Audit one schema</span></label>
+            <label><input class="sr-only" type="radio" name="analysis-mode" value="compare" id="compare-mode"><span>Compare versions</span></label>
+          </fieldset>
+
+          <div class="field">
+            <div class="field-head">
+              <label for="input" id="input-label">Tool JSON</label>
+              <label class="button file">Open JSON<span class="sr-only"> for the baseline</span><input id="open" type="file" accept=".json,application/json"></label>
+            </div>
+            <textarea id="input" aria-describedby="input-help" spellcheck="false" autocomplete="off" maxlength="1000001" placeholder='{"tools": [...]}'></textarea>
+          </div>
+          <div class="field" id="candidate" hidden>
+            <div class="field-head">
+              <label for="second">Candidate JSON</label>
+              <label class="button file">Open JSON<span class="sr-only"> for the candidate</span><input id="open-second" type="file" accept=".json,application/json"></label>
+            </div>
+            <textarea id="second" aria-describedby="input-help" spellcheck="false" autocomplete="off" maxlength="1000001" placeholder='{"tools": [...]}'></textarea>
+          </div>
+
+          <div class="editor-actions">
+            <button id="run" class="primary" type="button" disabled>Run audit</button>
+            <button id="demo" type="button" disabled>Try example</button>
+            <button id="reset" class="text-button" type="button" disabled>Clear</button>
+          </div>
+          <p id="notice" class="notice" role="status">Loading the analyzer…</p>
+          <noscript><p>Enable JavaScript to run the audit in your browser.</p></noscript>
+        </section>
+
+        <section class="panel results" aria-labelledby="result-title">
+          <header class="panel-head">
+            <p class="eyebrow"><span class="step">02</span> REPORT</p>
+            <h2 id="result-title" tabindex="-1">Audit report</h2>
+            <p id="report-mode">Static tool-schema analysis</p>
+          </header>
+          <div id="empty" class="empty">
+            <svg viewBox="0 0 48 48" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="7" y="7" width="34" height="34" rx="8"/><path d="M13 25h6l3-8 5 15 3-7h5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <h3 id="empty-title">No audit yet</h3>
+            <p id="empty-description">Add a schema or try the built-in example to see results here.</p>
+          </div>
+          <div id="report" hidden>
+            <a href="#input-title" class="edit-inputs">Edit inputs <span aria-hidden="true">↑</span></a>
+            <dl class="metrics">
+              <div><dt>Health score</dt><dd id="score"></dd><dd class="metric-change" id="score-change"></dd></div>
+              <div><dt>Est. schema tokens</dt><dd id="tokens"></dd><dd class="metric-change" id="tokens-change"></dd></div>
+              <div><dt>Findings</dt><dd id="issues"></dd><dd class="metric-change" id="issues-change"></dd></div>
+            </dl>
+            <p class="report-note">Scores and token counts are estimates, not a security or compatibility verdict.</p>
+
+            <section class="report-block" id="changes" aria-labelledby="changes-title" hidden>
+              <div class="section-head"><h3 id="changes-title">Tool changes</h3><span id="change-count" class="micro"></span></div>
+              <p id="change-summary" class="micro"></p>
+              <div id="change-table">
+                <table>
+                  <caption class="sr-only">Changed tools and estimated token counts</caption>
+                  <thead><tr><th scope="col">Tool</th><th scope="col">Before</th><th scope="col">After</th><th scope="col">Δ tokens</th></tr></thead>
+                  <tbody id="change-rows"></tbody>
+                </table>
+                <button id="more-tools" type="button" hidden></button>
+              </div>
+            </section>
+
+            <section class="report-block" id="context" aria-labelledby="context-title">
+              <div class="section-head"><h3 id="context-title">Context by tool</h3><span id="tool-count" class="micro"></span></div>
+              <ul id="bars"></ul>
+            </section>
+
+            <section class="report-block" aria-labelledby="findings-title">
+              <div class="section-head">
+                <h3 id="findings-title">Findings</h3>
+                <label class="filter"><span class="sr-only">Filter by severity</span><select id="severity"><option value="all">All severities</option><option value="error">Errors</option><option value="warning">Warnings</option><option value="info">Info</option></select></label>
+              </div>
+              <div id="finding-views" class="finding-views" role="group" aria-label="Finding view" hidden>
+                <button type="button" id="current" aria-pressed="true">Candidate</button>
+                <button type="button" id="added" aria-pressed="false">New</button>
+                <button type="button" id="resolved" aria-pressed="false">Resolved</button>
+                <button type="button" id="baseline" aria-pressed="false">Baseline</button>
+              </div>
+              <p id="finding-count" class="micro" aria-live="polite"></p>
+              <div id="findings"></div>
+              <button id="more-findings" type="button" hidden></button>
+            </section>
+
+            <div class="report-block export">
+              <div><h3>Export report</h3><p class="micro">Reports include tool names and finding details. Review before sharing.</p></div>
+              <div class="export-actions"><button id="markdown" type="button">Markdown ↓</button><button id="download" type="button">JSON ↓</button></div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <section class="cli" id="cli" aria-labelledby="cli-title">
+        <div><p class="eyebrow"><span class="step">03</span> LOCAL CLI</p><h2 id="cli-title">Catch breaking tool changes in CI.</h2><p>Use the native Rust CLI to audit schemas offline and check whether a candidate removes tools or restricts arguments.</p></div>
+        <a class="button" href="https://github.com/NnopponS/agent-doctor#rust-quickstart">Rust quickstart <span aria-hidden="true">↗&#xfe0e;</span></a>
+      </section>
+    </main>
+    <footer><span>Agent Doctor · MIT</span><div><a href="./llms.txt">Agent index</a><a href="https://github.com/NnopponS/agent-doctor/issues">Report an issue <span aria-hidden="true">↗&#xfe0e;</span></a></div></footer>
+  </div>
+  <script type="module" src="./workbench.js"></script>
+</body>
+</html>

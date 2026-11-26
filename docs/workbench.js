@@ -1,125 +1,351 @@
 import {analyzeMcpServer} from './engine/analyzer.js';
 import {parseToolInput} from './engine/schema-input.js';
+import {compareAudits, formatMarkdown, prioritize} from './review.js';
 
 const $ = id => document.getElementById(id);
+const format = new Intl.NumberFormat('en');
+const PAGE_SIZE = 15;
 const sample = [
   {
     name: 'lookup_device_status',
-    description: 'Look up the device status and return its latest recorded state. Catalog generated 2026-11-17T03:00:00Z. ' +
+    description: 'Look up the device status. Catalog generated 2026-11-17T03:00:00Z. ' +
       'Use this lookup to return the recorded state for a known device identifier. '.repeat(10),
-    inputSchema: {type:'object',properties:{deviceId:{type:'string'}},required:['deviceId','obsoleteFilter']}
+    inputSchema: {type: 'object', properties: {deviceId: {type: 'string'}}, required: ['deviceId', 'obsoleteFilter']},
+  },
+  {
+    name: 'lookup_legacy_device',
+    description: 'Return the status of a retired device from the archive.',
+    inputSchema: {type: 'object', properties: {}},
+    annotations: {readOnlyHint: true, destructiveHint: false},
   },
   {
     name: 'list_status_codes',
-    description: 'List the documented device status codes and their meanings.',
-    inputSchema: {type:'object',properties:{}},
-    annotations: {readOnlyHint:true,destructiveHint:false}
-  }
+    description: 'List device status codes and their meanings.',
+    inputSchema: {type: 'object', properties: {}},
+    annotations: {readOnlyHint: true, destructiveHint: false},
+  },
 ];
-const candidate = [{
-  name: 'lookup_device_status',
-  description: 'Return the latest recorded status for a known device.',
-  inputSchema: {type:'object',properties:{deviceId:{type:'string',description:'The exact device identifier.'}},required:['deviceId']},
-  annotations: {readOnlyHint:true,destructiveHint:false}
-},sample[1]];
-const format = new Intl.NumberFormat('en');
-const rank = {error:0,warning:1,info:2};
-let report = null;
+const sampleCandidate = [
+  {
+    name: 'lookup_device_status',
+    description: 'Return the latest recorded status for a known device.',
+    inputSchema: {type: 'object', properties: {deviceId: {type: 'string', description: 'Exact device identifier.'}}, required: ['deviceId']},
+    annotations: {readOnlyHint: true, destructiveHint: false},
+  },
+  {
+    name: 'search_device_logs',
+    description: 'Find log entries for a device.',
+    inputSchema: {type: 'object', properties: {deviceId: {type: 'string'}}, required: ['deviceId']},
+    annotations: {readOnlyHint: true, destructiveHint: false},
+  },
+  sample[2],
+];
+const fields = [
+  {text: $('input'), file: $('open'), label: 'Baseline'},
+  {text: $('second'), file: $('open-second'), label: 'Candidate'},
+];
+const findingViews = {current: 'Candidate', added: 'New', resolved: 'Resolved', baseline: 'Baseline'};
+const pendingFiles = new Map();
+let result = null;
+let selectedView = 'current';
+let isExample = false;
 
-function el(name, text){
-  const node=document.createElement(name);
-  if(text!==undefined) node.textContent=text;
+function el(tag, text, className) {
+  const node = document.createElement(tag);
+  if (text !== undefined) node.textContent = text;
+  if (className) node.className = className;
   return node;
 }
-function note(message, error=false){
-  $('notice').textContent=message;
-  $('notice').toggleAttribute('data-error',error);
+
+function isCompare() {
+  return $('compare-mode').checked;
 }
-function clearReport(){
-  report=null;
-  for(const id of ['score','tokens','issues']) $(id).textContent='–';
-  for(const id of ['bars','findings','comparison','tool-count']) $(id).replaceChildren();
-  $('mode').textContent='Static tool-schema analysis';
-  $('comparison').hidden=true;
-  $('download').disabled=true;
+
+function note(message, error = false) {
+  $('notice').textContent = message;
+  $('notice').toggleAttribute('data-error', error);
 }
-function audited(text,label) {
-  return analyzeMcpServer({mode:'static-schema',serverName:label,tools:parseToolInput(text)});
-}
-function renderFindings(){
-  const root=$('findings');
-  root.replaceChildren();
-  if(!report)return;
-  const view=report.candidate||report.baseline;
-  const filter=$('severity').value;
-  const list=view.findings.filter(f=>filter==='all'||filter===f.severity)
-    .sort((a,b)=>rank[a.severity]-rank[b.severity]);
-  if(!list.length){root.append(el('p','No findings in this filter.'));return;}
-  for(const f of list.slice(0,150)){
-    const details=el('details');details.className='finding';details.dataset.level=f.severity;
-    const summary=el('summary');summary.append(el('span',f.severity),document.createTextNode(' '+f.ruleId+' · '+f.target));
-    details.append(summary,el('p',f.message),el('p',f.suggestion));
-    root.append(details);
+
+function clearErrors() {
+  for (const {text} of fields) {
+    text.removeAttribute('aria-invalid');
+    text.removeAttribute('aria-errormessage');
   }
-  if (list.length>150)root.append(el('p','Showing 150 of '+list.length+' findings. Export JSON to see all.'));
 }
-function render(){
-  $('download').disabled=false;
-  const view=report.candidate||report.baseline;
-  $('mode').textContent=report.candidate?'Candidate result · compared against baseline':'Baseline · static analysis only';
-  $('score').textContent=view.score+'/100';
-  $('tokens').textContent=format.format(view.totalTokens);
-  $('issues').textContent=format.format(view.findings.length);
-  $('tool-count').textContent=view.toolCount>8?'Top 8 of '+view.toolCount:view.toolCount+' tools';
-  $('bars').replaceChildren();
-  for(const p of view.tools.slice(0,8)){
-    const item=el('li'),meter=el('progress');
-    meter.max=Math.max(1,view.totalTokens);
-    meter.value=p.totalTokens;
-    meter.setAttribute('aria-label','Estimated tokens for '+p.name);
-    item.append(el('span',p.name),meter,el('b',format.format(p.totalTokens)));$('bars').append(item);
+
+function showEmpty(title, description) {
+  result = null;
+  $('report').hidden = true;
+  $('empty').hidden = false;
+  $('report-mode').textContent = 'Static tool-schema analysis';
+  $('empty-title').textContent = title;
+  $('empty-description').textContent = description;
+}
+
+function markChanged(message) {
+  if (result) showEmpty('Run the changed inputs', 'The previous report no longer matches your input.');
+  clearErrors();
+  if (message) note(message);
+}
+
+function syncInputControls() {
+  const busy = pendingFiles.has(fields[0]) || (isCompare() && pendingFiles.has(fields[1]));
+  const hasInput = fields.some(({text}) => text.value.trim());
+  $('demo').disabled = busy || (hasInput && !isExample);
+  $('demo').title = hasInput && !isExample ? 'Clear the inputs before replacing them with the example.' : '';
+  $('reset').disabled = !hasInput && !pendingFiles.size;
+  $('run').disabled = busy;
+}
+
+function syncMode() {
+  const compare = isCompare();
+  $('candidate').hidden = !compare;
+  $('input-label').textContent = compare ? 'Baseline JSON' : 'Tool JSON';
+  $('run').textContent = compare ? 'Compare schemas' : 'Run audit';
+  $('demo').textContent = compare ? 'Try comparison' : 'Try example';
+  syncInputControls();
+}
+
+function auditInput(field) {
+  const {text, label} = field;
+  const prefix = isCompare() ? label + ': ' : '';
+  try {
+    if (!text.value.trim()) throw new Error('Paste tool JSON or open a JSON file.');
+    const definitions = parseToolInput(text.value);
+    // Both versions use the same label so server-wide findings can match across runs.
+    const report = analyzeMcpServer({mode: 'static-schema', serverName: 'schema', tools: definitions});
+    return {report, definitions};
+  } catch (error) {
+    text.setAttribute('aria-invalid', 'true');
+    text.setAttribute('aria-errormessage', 'notice');
+    text.focus();
+    const message = error instanceof SyntaxError ? 'Invalid JSON. Check quotes, commas, and brackets.' : error.message;
+    throw new Error(prefix + message);
   }
-  const comparison=$('comparison');comparison.replaceChildren();comparison.hidden=!report.candidate;
-  if(report.candidate){
-    const before=report.baseline;
-    const delta=view.totalTokens-before.totalTokens;
-    const direction=delta===0?'No estimated token change':format.format(Math.abs(delta))+' estimated tokens '+(delta<0?'fewer':'more');
-    comparison.append(el('strong',direction),el('span',before.score+' → '+view.score+' score · '+before.findings.length+' → '+view.findings.length+' findings · '+before.toolCount+' → '+view.toolCount+' tools'));
+}
+
+const signed = delta => delta > 0 ? '+' + format.format(delta) : delta < 0 ? '−' + format.format(-delta) : '0';
+
+function moreRows(root, button, rows, renderRow, reset = false) {
+  if (reset) root.replaceChildren();
+  const start = root.children.length;
+  const page = rows.slice(start, start + PAGE_SIZE).map(renderRow);
+  root.append(...page);
+  const left = rows.length - root.children.length;
+  button.hidden = left <= 0;
+  button.textContent = left > 0 ? 'Show ' + Math.min(left, PAGE_SIZE) + ' more' : '';
+  if (!reset && page.length) {
+    const target = page[0].querySelector('summary') ?? page[0];
+    if (target === page[0]) target.tabIndex = -1;
+    target.focus();
   }
-  renderFindings();
 }
-function run(){
-  try{
-    if(!$('input').value.trim())throw new Error('Paste tool JSON or load the example first.');
-    const baseline=audited($('input').value,'baseline');
-    const candidate=$('candidate').open && $('second').value.trim()?audited($('second').value,'candidate'):null;
-    report={format:'agent-doctor-static-report-v1',baseline,candidate};
-    render();note('Audit complete. Token counts are estimates; this is not a live server or security audit.');
-  }catch(error){clearReport();note(error instanceof Error?error.message:'Could not read this schema.',true);}
+
+function toolRow(tool) {
+  const row = el('tr');
+  const name = el('th');
+  name.scope = 'row';
+  const tag = el('span', tool.kind + (tool.copies > 1 ? ' · grouped name' : ''), 'tool-tag');
+  tag.dataset.kind = tool.kind;
+  name.append(el('code', tool.name, 'tool-name'), tag);
+  row.append(name, ...[tool.previous, tool.current].map(tokens => el('td', tokens === null ? '—' : format.format(tokens))), el('td', signed(tool.delta)));
+  return row;
 }
-function load(compare){
-  $('input').value=JSON.stringify(sample,null,2);
-  $('candidate').open=compare;
-  $('second').value=compare?JSON.stringify({jsonrpc:'2.0',id:1,result:{tools:candidate}},null,2):'';
+
+function findingRow(finding) {
+  const details = el('details', undefined, 'finding');
+  details.dataset.level = finding.severity;
+  const summary = el('summary');
+  summary.append(el('span', finding.severity), document.createTextNode(finding.ruleId + ' · ' + finding.target));
+  details.append(summary, el('p', finding.message), el('p', finding.suggestion));
+  return details;
+}
+
+function renderFindings(reset) {
+  if (!result) return;
+  const {report, review} = result;
+  const groups = {
+    current: (report.candidate ?? report.baseline).findings,
+    baseline: report.baseline.findings,
+    added: review?.added ?? [],
+    resolved: review?.resolved ?? [],
+  };
+  for (const [id, label] of Object.entries(findingViews)) {
+    $(id).textContent = label + ' ' + format.format(groups[id].length);
+    $(id).setAttribute('aria-pressed', String(id === selectedView));
+  }
+
+  const severity = $('severity').value;
+  const selected = groups[selectedView];
+  const rows = prioritize(selected.filter(finding => severity === 'all' || severity === finding.severity));
+  moreRows($('findings'), $('more-findings'), rows, findingRow, reset);
+  $('finding-count').textContent = rows.length
+    ? format.format($('findings').children.length) + ' of ' + format.format(rows.length) + ' shown' + (rows.length === selected.length ? '' : ' after filtering')
+    : selected.length ? 'No findings match this severity.' : 'No findings in this view.';
+}
+
+function render() {
+  const {report, review} = result;
+  const {baseline, candidate} = report;
+  const view = candidate ?? baseline;
+  $('empty').hidden = true;
+  $('report').hidden = false;
+  $('report-mode').textContent = (isExample ? 'Example · ' : '') + (candidate ? 'Candidate compared with baseline' : 'Single schema audit');
+  for (const [id, current, previous, suffix] of [
+    ['score', view.score, baseline.score, '/100'],
+    ['tokens', view.totalTokens, baseline.totalTokens, ''],
+    ['issues', view.findings.length, baseline.findings.length, ''],
+  ]) {
+    $(id).textContent = format.format(current) + suffix;
+    const metricChange = $(id + '-change');
+    metricChange.hidden = !candidate;
+    if (candidate) metricChange.textContent = signed(current - previous) + ' vs baseline';
+  }
+
+  $('changes').hidden = !review;
+  $('context').hidden = !!review;
+  $('finding-views').hidden = !review;
+  if (review) {
+    const counts = {Added: 0, Removed: 0, Edited: 0};
+    for (const tool of review.tools) counts[tool.kind]++;
+    $('change-count').textContent = format.format(baseline.toolCount) + ' → ' + format.format(view.toolCount) + ' tools';
+    $('change-summary').textContent = review.tools.length
+      ? Object.entries(counts).map(([kind, count]) => format.format(count) + ' ' + kind.toLowerCase()).join(' · ')
+      : 'No added, removed, or edited tools.';
+    $('change-table').hidden = !review.tools.length;
+    moreRows($('change-rows'), $('more-tools'), review.tools, toolRow, true);
+  } else {
+    $('tool-count').textContent = view.toolCount > 8 ? 'Top 8 of ' + format.format(view.toolCount) : format.format(view.toolCount) + ' tools';
+    $('bars').replaceChildren();
+    for (const tool of view.tools.slice(0, 8)) {
+      const row = el('li');
+      const meter = el('progress');
+      meter.max = Math.max(1, view.totalTokens);
+      meter.value = tool.totalTokens;
+      meter.setAttribute('aria-label', 'Estimated tokens for ' + tool.name);
+      row.append(el('code', tool.name), meter, el('b', format.format(tool.totalTokens)));
+      $('bars').append(row);
+    }
+  }
+
+  selectedView = 'current';
+  $('severity').value = 'all';
+  renderFindings(true);
+}
+
+function run() {
+  if ($('run').disabled) return;
+  clearErrors();
+  try {
+    const baseline = auditInput(fields[0]);
+    const candidate = isCompare() ? auditInput(fields[1]) : null;
+    result = {
+      report: {format: 'agent-doctor-static-report-v1', baseline: baseline.report, candidate: candidate?.report ?? null},
+      review: candidate ? compareAudits(baseline.report, candidate.report, baseline.definitions, candidate.definitions) : null,
+    };
+    render();
+    note(candidate ? 'Comparison complete.' : 'Audit complete.');
+    $('result-title').focus({preventScroll: true});
+    if (window.matchMedia('(max-width: 800px)').matches) $('result-title').closest('.panel').scrollIntoView({block: 'start'});
+  } catch (error) {
+    showEmpty('No report', 'Fix the input and run the audit again.');
+    note(error.message, true);
+  }
+}
+
+function download(extension) {
+  if (!result) return;
+  const {report, review} = result;
+  const markdown = extension === 'md';
+  const content = markdown ? formatMarkdown(report, review) : JSON.stringify(report, null, 2) + '\n';
+  const url = URL.createObjectURL(new Blob([content], {type: markdown ? 'text/markdown;charset=utf-8' : 'application/json'}));
+  const link = el('a');
+  link.href = url;
+  link.download = 'agent-doctor-' + (review ? 'comparison' : 'audit') + '.' + extension;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1_000);
+}
+
+for (const field of fields) {
+  const {text, file} = field;
+  text.addEventListener('input', () => {
+    pendingFiles.delete(field);
+    isExample = false;
+    markChanged(result ? 'JSON changed. Run the audit again.' : 'Run the audit to see results.');
+    syncInputControls();
+  });
+  text.addEventListener('keydown', event => {
+    if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+      event.preventDefault();
+      run();
+    }
+  });
+  file.addEventListener('change', async () => {
+    const selected = file.files?.[0];
+    if (!selected) return;
+    file.value = '';
+    const request = {};
+    pendingFiles.set(field, request);
+    syncInputControls();
+    try {
+      if (selected.size > 1_000_000) throw new Error('Choose a JSON file up to 1 MB.');
+      const content = await selected.text();
+      if (pendingFiles.get(field) !== request) return;
+      text.value = content;
+      isExample = false;
+      markChanged('JSON loaded. Run the audit when ready.');
+    } catch (error) {
+      if (pendingFiles.get(field) === request) note(error.message, true);
+    } finally {
+      if (pendingFiles.get(field) === request) {
+        pendingFiles.delete(field);
+        syncInputControls();
+      }
+    }
+  });
+}
+
+for (const id of ['audit-mode', 'compare-mode']) $(id).addEventListener('change', () => {
+  if (!isCompare()) pendingFiles.delete(fields[1]);
+  if (isExample) {
+    fields[0].text.value = '';
+    fields[1].text.value = '';
+    isExample = false;
+  }
+  markChanged(isCompare() ? 'Add the baseline and candidate JSON.' : 'Add JSON or try the built-in example.');
+  syncMode();
+});
+$('run').addEventListener('click', run);
+$('demo').addEventListener('click', () => {
+  isExample = true;
+  fields[0].text.value = JSON.stringify({tools: sample}, null, 2);
+  fields[1].text.value = isCompare() ? JSON.stringify({jsonrpc: '2.0', id: 1, result: {tools: sampleCandidate}}, null, 2) : '';
+  syncInputControls();
   run();
-}
-$('sample').addEventListener('click',()=>load(false));
-$('compare-example').addEventListener('click',()=>load(true));
-$('audit').addEventListener('click',run);
-$('severity').addEventListener('change',renderFindings);
-for(const id of ['input','second'])$(id).addEventListener('input',()=>{ if(report){clearReport();note('Input changed. Run the audit again.');} });
-$('candidate').addEventListener('toggle',()=>{if(report&&!!report.candidate!==($('candidate').open&&!!$('second').value.trim())){clearReport();note('Comparison changed. Run the audit again.');}});
-$('reset').addEventListener('click',()=>{$('input').value='';$('second').value='';$('candidate').open=false;$('open').value='';clearReport();note('Input cleared.');$('input').focus();});
-$('open').addEventListener('change',async event=>{
-  const file=event.target.files?.[0];if(!file)return;
-  try{if(file.size>1_000_000)throw new Error('Choose a JSON file up to 1 MB.');$('input').value=await file.text();run();}
-  catch(error){clearReport();note(error.message,true);}
-  finally{event.target.value='';}
 });
-$('download').addEventListener('click',()=>{
-  if(!report)return;
-  const blob=new Blob([JSON.stringify(report,null,2)+'\n'],{type:'application/json'});
-  const url=URL.createObjectURL(blob),link=el('a');link.href=url;link.download='agent-doctor-report.json';
-  document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+$('reset').addEventListener('click', () => {
+  pendingFiles.clear();
+  isExample = false;
+  for (const {text, file} of fields) { text.value = ''; file.value = ''; }
+  clearErrors();
+  showEmpty('No audit yet', 'Add a schema or try the built-in example to see results here.');
+  note('Inputs cleared.');
+  syncInputControls();
+  fields[0].text.focus();
 });
-load(false);
+$('severity').addEventListener('change', () => renderFindings(true));
+for (const id of Object.keys(findingViews)) $(id).addEventListener('click', () => {
+  selectedView = id;
+  renderFindings(true);
+});
+$('more-findings').addEventListener('click', () => renderFindings(false));
+$('more-tools').addEventListener('click', () => {
+  if (result?.review) moreRows($('change-rows'), $('more-tools'), result.review.tools, toolRow);
+});
+$('markdown').addEventListener('click', () => download('md'));
+$('download').addEventListener('click', () => download('json'));
+
+syncMode();
+note('No sign-in required. Files up to 1 MB.');
