@@ -26,29 +26,38 @@ runs:
   steps:
     - name: Build agent-doctor
       shell: bash
+      env:
+        DOCTOR_ACTION_DIR: ${{ github.action_path }}
       run: |
-        cd "${{ github.action_path }}"
+        cd "$DOCTOR_ACTION_DIR"
         npm ci
         npm run build
     - name: Run Agent Doctor Audit
       shell: bash
+      env:
+        DOCTOR_ACTION_DIR: ${{ github.action_path }}
+        DOCTOR_FAIL_ON_ISSUES: ${{ inputs.fail-on-issues }}
+        DOCTOR_STACK: ${{ inputs.stack-dir }}
+        DOCTOR_COMMAND: ${{ inputs.command }}
+        DOCTOR_SCHEMA: ${{ inputs.schema-file }}
+        DOCTOR_SARIF: ${{ inputs.sarif-output }}
       run: |
         CI_FLAG=""
-        if [ "${{ inputs.fail-on-issues }}" = "true" ]; then
+        if [ "$DOCTOR_FAIL_ON_ISSUES" = "true" ]; then
           CI_FLAG="--ci"
         fi
-        if [ -n "${{ inputs.stack-dir }}" ]; then
-          node "${{ github.action_path }}/dist/cli.js" stack "${{ inputs.stack-dir }}" $CI_FLAG
-        elif [ -n "${{ inputs.command }}" ]; then
-          node "${{ github.action_path }}/dist/cli.js" check "${{ inputs.command }}" $CI_FLAG
-          if [ -n "${{ inputs.sarif-output }}" ]; then
-            node "${{ github.action_path }}/dist/cli.js" check "${{ inputs.command }}" --sarif > "${{ inputs.sarif-output }}"
+        if [ -n "$DOCTOR_STACK" ]; then
+          node "$DOCTOR_ACTION_DIR/dist/cli.js" stack "$DOCTOR_STACK" $CI_FLAG
+        elif [ -n "$DOCTOR_COMMAND" ]; then
+          node "$DOCTOR_ACTION_DIR/dist/cli.js" check "$DOCTOR_COMMAND" $CI_FLAG
+          if [ -n "$DOCTOR_SARIF" ]; then
+            node "$DOCTOR_ACTION_DIR/dist/cli.js" check "$DOCTOR_COMMAND" --sarif > "$DOCTOR_SARIF"
           fi
-        elif [ -n "${{ inputs.schema-file }}" ]; then
-          node "${{ github.action_path }}/dist/cli.js" analyze "${{ inputs.schema-file }}" $CI_FLAG
-          if [ -n "${{ inputs.sarif-output }}" ]; then
-            node "${{ github.action_path }}/dist/cli.js" analyze "${{ inputs.schema-file }}" --sarif > "${{ inputs.sarif-output }}"
+        elif [ -n "$DOCTOR_SCHEMA" ]; then
+          node "$DOCTOR_ACTION_DIR/dist/cli.js" analyze "$DOCTOR_SCHEMA" $CI_FLAG
+          if [ -n "$DOCTOR_SARIF" ]; then
+            node "$DOCTOR_ACTION_DIR/dist/cli.js" analyze "$DOCTOR_SCHEMA" --sarif > "$DOCTOR_SARIF"
           fi
         else
-          node "${{ github.action_path }}/dist/cli.js" stack . $CI_FLAG
+          node "$DOCTOR_ACTION_DIR/dist/cli.js" stack . $CI_FLAG
         fi
