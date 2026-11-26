@@ -23,10 +23,11 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "npm run build && node --test dist/test/*.test.js",
+    "test": "npm run build && node --test dist/test/*.test.js && node scripts/build-pages.mjs --check && node scripts/test-workbench.mjs",
     "demo": "node dist/cli.js demo",
     "stack": "node dist/cli.js stack .",
-    "ui": "node dist/cli.js ui"
+    "ui": "node dist/cli.js ui",
+    "build:pages": "npm run build && node scripts/build-pages.mjs"
   },
   "keywords": [
     "agent-doctor",

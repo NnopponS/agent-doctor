@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { analyzeMcpServer } from './analyzer.js';
+import { parseToolInput } from './schema-input.js';
 import { generateHealthBadgeSvg } from './badge.js';
 import { getDefaultConfigCandidates, scanMcpConfig } from './config-scanner.js';
 import { BLOATED_SAMPLE_TOOLS, OPTIMIZED_SAMPLE_TOOLS } from './demo-fixtures.js';
@@ -59,10 +60,7 @@ function getFlagValue(args: string[], flag: string): string | undefined {
 
 function loadToolsFromFile(filePath: string): { resolved: string; tools: McpToolDefinition[] } {
   const resolved = path.resolve(filePath);
-  const raw = JSON.parse(fs.readFileSync(resolved, 'utf8')) as
-    | McpToolDefinition[]
-    | { tools?: McpToolDefinition[] };
-  const tools = Array.isArray(raw) ? raw : Array.isArray(raw.tools) ? raw.tools : [];
+  const tools = parseToolInput(fs.readFileSync(resolved, 'utf8'));
   return { resolved, tools };
 }
 

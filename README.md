@@ -38,25 +38,32 @@ Small mistakes across these layers silently wreck performance and budgets:
 
 ---
 
-## 30-Second Quickstart
+## Browser workbench
 
-```bash
-# 1. Audit your entire repository's 4-layer AAIF stack (AGENTS.md + SKILL.md + MCP 2026 + A2A)
-npx -y github:NnopponS/agent-doctor stack . --ci
+[Open the MCP schema workbench](https://nnoppons.github.io/agent-doctor/) to paste a tool array, a tools/list response, or a JSON-RPC response. Open a local JSON file, compare a second schema, filter findings, or export the diagnostic report. The page uses the same static analyzer and input parser as the CLI. It does not upload schemas, launch a process, or connect to servers. Scores and token counts are heuristics.
 
-# 2. Live-inspect any MCP 2026 stdio server (handshake latency + prompt-cache check + 20 rules)
-npx -y github:NnopponS/agent-doctor check "node dist/cli.js mcp" --ci
+To update the site engine after editing analyzer code, run **npm run build:pages** and commit the generated files in **docs/engine/**. Tests check that the browser engine matches the TypeScript build.
 
-# 3. Auto-fix broken schemas, canonicalize property keys, scrub timestamps & add MCP 2026 annotations
-npx -y github:NnopponS/agent-doctor fix examples/bloated-tools.json --out examples/fixed-tools.json
+## Quickstart from source
 
-# 4. Migrate bloated always-on MCP tools into progressive SKILL.md bundles (~90% token reduction)
-npx -y github:NnopponS/agent-doctor migrate-skills examples/bloated-tools.json --dir .agents/skills
+With Node.js 18+:
 
-# 5. Validate an A2A Agent Card or launch the local Web Inspector Dashboard
-npx -y github:NnopponS/agent-doctor a2a .well-known/agent-card.json --ci
-npx -y github:NnopponS/agent-doctor ui
+```sh
+git clone https://github.com/NnopponS/agent-doctor.git
+cd agent-doctor
+npm ci
+npm run build
+
+# Analyze bundled sample, or substitute your own tools/list export.
+node dist/cli.js analyze examples/bloated-tools.json --json
+node dist/cli.js stack . --ci
+
+# Validate an Agent Card or launch the local dashboard.
+node dist/cli.js a2a .well-known/agent-card.json --ci
+node dist/cli.js ui
 ```
+
+Use **analyze** for static files. Use **check** only with a trusted local command you intend to launch.
 
 ---
 

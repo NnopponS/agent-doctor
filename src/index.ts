@@ -13,3 +13,4 @@ export * from './reporter.js';
 export * from './mcp-server.js';
 export * from './web-ui.js';
 export * from './demo-fixtures.js';
+export * from './schema-input.js';
