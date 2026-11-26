@@ -91,7 +91,7 @@ Use **analyze** for static files. Use **check** only with a trusted local comman
 | Command | Purpose |
 | :--- | :--- |
 | `agent-doctor stack [dir]` | Audits all 4 AAIF layers (`AGENTS.md`, `SKILL.md`, `.mcp.json` / `server.json`, `agent-card.json`) |
-| `agent-doctor check "<cmd>"` | Spawns an MCP stdio server with `2026-07-28` handshake, times `initialize` + `tools/list`, runs 20 rules |
+| `agent-doctor check "<cmd>"` | Starts a trusted local MCP stdio command and checks `initialize` + `tools/list` (legacy lifecycle) |
 | `agent-doctor fix <tools.json>` | Fixes `MCP001`–`MCP019`, sorts property keys for deterministic cache prefixes, strips volatile timestamps |
 | `agent-doctor migrate-skills <tools.json>` | Converts bloated MCP tools into progressive-disclosure `.agents/skills/<slug>/SKILL.md` files |
 | `agent-doctor a2a <agent-card.json>` | Audits Agent2Agent cards for identity, TLS, `securitySchemes`, `streaming`, and `skills[]` |
@@ -103,13 +103,16 @@ Use **analyze** for static files. Use **check** only with a trusted local comman
 
 ---
 
-## Use in GitHub Actions (CI + SARIF Security Tab)
+## Use in GitHub Actions (static schema + SARIF)
+
+Place a tools/list JSON export at `tools.json` and add this step after checkout in a job with Node.js 18 or later. Use `stack-dir` instead of `schema-file` for a repository-wide audit. Avoid running untrusted commands in a workflow.
 
 ```yaml
 - name: Audit AI Agent Stack & MCP Schemas
-  uses: NnopponS/agent-doctor@v2
+  uses: NnopponS/agent-doctor@4268f20385c083bc38df50c2df67fd3da2d3388f # tested composite action commit
   with:
-    stack-dir: '.'
+    schema-file: 'tools.json'
+    sarif-output: 'agent-doctor.sarif'
     fail-on-issues: 'true'
 ```
 
@@ -131,6 +134,8 @@ npx -y github:NnopponS/agent-doctor analyze tools.json --sarif > agent-doctor.sa
 ---
 
 ## Self-Hosted MCP Server (`agent-doctor mcp`)
+
+The bundled server and live inspector currently use the legacy initialization flow. The [2026-07-28 MCP revision](https://blog.modelcontextprotocol.io/posts/2026-07-28/) uses stateless per-request metadata instead; the live self-test is not evidence of compatibility with that revision. Static tool-schema audits do not depend on the transport lifecycle.
 
 Add `agent-doctor` directly to `.mcp.json`, Claude Code, Cursor, or Codex:
 
